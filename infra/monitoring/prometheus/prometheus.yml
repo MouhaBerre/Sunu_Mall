@@ -1,0 +1,15 @@
+# Configuration minimale Prometheus. Ajoute des "scrape_configs"
+# au fur et à mesure des services à monitorer (ex: exporter Django,
+# exporter Postgres, exporter Redis...).
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # Exemple à activer une fois django-prometheus installé côté backend :
+  # - job_name: "backend"
+  #   static_configs:
+  #     - targets: ["backend:8000"]

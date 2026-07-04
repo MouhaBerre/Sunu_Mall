@@ -1,0 +1,40 @@
+# ===== Secrets — ne JAMAIS committer =====
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# ===== Python / Django (backend) =====
+__pycache__/
+*.py[cod]
+*.sqlite3
+backend/staticfiles/
+backend/media/
+.coverage
+htmlcov/
+.pytest_cache/
+venv/
+.venv/
+
+# ===== Node / JS / TS (frontend, seller-dashboard, mobile) =====
+node_modules/
+.next/
+dist/
+build/
+.expo/
+*.tsbuildinfo
+npm-debug.log*
+yarn-error.log*
+
+# ===== Docker =====
+*.pid
+
+# ===== Editeurs / OS =====
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ===== Données de monitoring/volumes locaux =====
+infra/monitoring/grafana/data/

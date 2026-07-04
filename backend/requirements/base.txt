@@ -1,0 +1,21 @@
+# Dépendances de base — toujours nécessaires, quel que soit l'environnement.
+# Garder ce fichier léger : tout ce qui est spécifique à l'IA va dans ia.txt
+
+Django>=5.0,<5.1
+djangorestframework>=3.15,<3.16
+django-cors-headers>=4.3,<4.4
+django-filter>=24.1,<24.2
+psycopg2-binary>=2.9,<3.0
+
+# Tâches asynchrones
+celery>=5.4,<5.5
+redis>=5.0,<5.1
+django-celery-beat>=2.6,<2.7
+
+# Stockage de fichiers (compatible MinIO via API S3)
+django-storages>=1.14,<1.15
+boto3>=1.34,<1.35
+
+# Configuration & sécurité
+python-decouple>=3.8,<3.9
+gunicorn>=22.0,<22.1
