@@ -18,11 +18,16 @@ import { Route as ScreensSearchRouteImport } from './routes/screens.search'
 import { Route as ScreensRegisterMerchantRouteImport } from './routes/screens.register-merchant'
 import { Route as ScreensRegisterClientRouteImport } from './routes/screens.register-client'
 import { Route as ScreensProductRouteImport } from './routes/screens.product'
+import { Route as ScreensOrderConfirmedRouteImport } from './routes/screens.order-confirmed'
 import { Route as ScreensMerchantRouteImport } from './routes/screens.merchant'
 import { Route as ScreensLoginRouteImport } from './routes/screens.login'
 import { Route as ScreensHomeRouteImport } from './routes/screens.home'
 import { Route as ScreensCreateShopRouteImport } from './routes/screens.create-shop'
+import { Route as ScreensCheckoutPaymentRouteImport } from './routes/screens.checkout-payment'
+import { Route as ScreensCheckoutDeliveryRouteImport } from './routes/screens.checkout-delivery'
+import { Route as ScreensCheckoutAddressRouteImport } from './routes/screens.checkout-address'
 import { Route as ScreensCatalogRouteImport } from './routes/screens.catalog'
+import { Route as ScreensCartRouteImport } from './routes/screens.cart'
 import { Route as ScreensAdminShopsRouteImport } from './routes/screens.admin-shops'
 import { Route as ScreensAdminManagersRouteImport } from './routes/screens.admin-managers'
 import { Route as ScreensAdminRouteImport } from './routes/screens.admin'
@@ -73,6 +78,11 @@ const ScreensProductRoute = ScreensProductRouteImport.update({
   path: '/product',
   getParentRoute: () => ScreensRoute,
 } as any)
+const ScreensOrderConfirmedRoute = ScreensOrderConfirmedRouteImport.update({
+  id: '/order-confirmed',
+  path: '/order-confirmed',
+  getParentRoute: () => ScreensRoute,
+} as any)
 const ScreensMerchantRoute = ScreensMerchantRouteImport.update({
   id: '/merchant',
   path: '/merchant',
@@ -93,9 +103,29 @@ const ScreensCreateShopRoute = ScreensCreateShopRouteImport.update({
   path: '/create-shop',
   getParentRoute: () => ScreensRoute,
 } as any)
+const ScreensCheckoutPaymentRoute = ScreensCheckoutPaymentRouteImport.update({
+  id: '/checkout-payment',
+  path: '/checkout-payment',
+  getParentRoute: () => ScreensRoute,
+} as any)
+const ScreensCheckoutDeliveryRoute = ScreensCheckoutDeliveryRouteImport.update({
+  id: '/checkout-delivery',
+  path: '/checkout-delivery',
+  getParentRoute: () => ScreensRoute,
+} as any)
+const ScreensCheckoutAddressRoute = ScreensCheckoutAddressRouteImport.update({
+  id: '/checkout-address',
+  path: '/checkout-address',
+  getParentRoute: () => ScreensRoute,
+} as any)
 const ScreensCatalogRoute = ScreensCatalogRouteImport.update({
   id: '/catalog',
   path: '/catalog',
+  getParentRoute: () => ScreensRoute,
+} as any)
+const ScreensCartRoute = ScreensCartRouteImport.update({
+  id: '/cart',
+  path: '/cart',
   getParentRoute: () => ScreensRoute,
 } as any)
 const ScreensAdminShopsRoute = ScreensAdminShopsRouteImport.update({
@@ -126,11 +156,16 @@ export interface FileRoutesByFullPath {
   '/screens/admin': typeof ScreensAdminRoute
   '/screens/admin-managers': typeof ScreensAdminManagersRoute
   '/screens/admin-shops': typeof ScreensAdminShopsRoute
+  '/screens/cart': typeof ScreensCartRoute
   '/screens/catalog': typeof ScreensCatalogRoute
+  '/screens/checkout-address': typeof ScreensCheckoutAddressRoute
+  '/screens/checkout-delivery': typeof ScreensCheckoutDeliveryRoute
+  '/screens/checkout-payment': typeof ScreensCheckoutPaymentRoute
   '/screens/create-shop': typeof ScreensCreateShopRoute
   '/screens/home': typeof ScreensHomeRoute
   '/screens/login': typeof ScreensLoginRoute
   '/screens/merchant': typeof ScreensMerchantRoute
+  '/screens/order-confirmed': typeof ScreensOrderConfirmedRoute
   '/screens/product': typeof ScreensProductRoute
   '/screens/register-client': typeof ScreensRegisterClientRoute
   '/screens/register-merchant': typeof ScreensRegisterMerchantRoute
@@ -146,11 +181,16 @@ export interface FileRoutesByTo {
   '/screens/admin': typeof ScreensAdminRoute
   '/screens/admin-managers': typeof ScreensAdminManagersRoute
   '/screens/admin-shops': typeof ScreensAdminShopsRoute
+  '/screens/cart': typeof ScreensCartRoute
   '/screens/catalog': typeof ScreensCatalogRoute
+  '/screens/checkout-address': typeof ScreensCheckoutAddressRoute
+  '/screens/checkout-delivery': typeof ScreensCheckoutDeliveryRoute
+  '/screens/checkout-payment': typeof ScreensCheckoutPaymentRoute
   '/screens/create-shop': typeof ScreensCreateShopRoute
   '/screens/home': typeof ScreensHomeRoute
   '/screens/login': typeof ScreensLoginRoute
   '/screens/merchant': typeof ScreensMerchantRoute
+  '/screens/order-confirmed': typeof ScreensOrderConfirmedRoute
   '/screens/product': typeof ScreensProductRoute
   '/screens/register-client': typeof ScreensRegisterClientRoute
   '/screens/register-merchant': typeof ScreensRegisterMerchantRoute
@@ -167,11 +207,16 @@ export interface FileRoutesById {
   '/screens/admin': typeof ScreensAdminRoute
   '/screens/admin-managers': typeof ScreensAdminManagersRoute
   '/screens/admin-shops': typeof ScreensAdminShopsRoute
+  '/screens/cart': typeof ScreensCartRoute
   '/screens/catalog': typeof ScreensCatalogRoute
+  '/screens/checkout-address': typeof ScreensCheckoutAddressRoute
+  '/screens/checkout-delivery': typeof ScreensCheckoutDeliveryRoute
+  '/screens/checkout-payment': typeof ScreensCheckoutPaymentRoute
   '/screens/create-shop': typeof ScreensCreateShopRoute
   '/screens/home': typeof ScreensHomeRoute
   '/screens/login': typeof ScreensLoginRoute
   '/screens/merchant': typeof ScreensMerchantRoute
+  '/screens/order-confirmed': typeof ScreensOrderConfirmedRoute
   '/screens/product': typeof ScreensProductRoute
   '/screens/register-client': typeof ScreensRegisterClientRoute
   '/screens/register-merchant': typeof ScreensRegisterMerchantRoute
@@ -189,11 +234,16 @@ export interface FileRouteTypes {
     | '/screens/admin'
     | '/screens/admin-managers'
     | '/screens/admin-shops'
+    | '/screens/cart'
     | '/screens/catalog'
+    | '/screens/checkout-address'
+    | '/screens/checkout-delivery'
+    | '/screens/checkout-payment'
     | '/screens/create-shop'
     | '/screens/home'
     | '/screens/login'
     | '/screens/merchant'
+    | '/screens/order-confirmed'
     | '/screens/product'
     | '/screens/register-client'
     | '/screens/register-merchant'
@@ -209,11 +259,16 @@ export interface FileRouteTypes {
     | '/screens/admin'
     | '/screens/admin-managers'
     | '/screens/admin-shops'
+    | '/screens/cart'
     | '/screens/catalog'
+    | '/screens/checkout-address'
+    | '/screens/checkout-delivery'
+    | '/screens/checkout-payment'
     | '/screens/create-shop'
     | '/screens/home'
     | '/screens/login'
     | '/screens/merchant'
+    | '/screens/order-confirmed'
     | '/screens/product'
     | '/screens/register-client'
     | '/screens/register-merchant'
@@ -229,11 +284,16 @@ export interface FileRouteTypes {
     | '/screens/admin'
     | '/screens/admin-managers'
     | '/screens/admin-shops'
+    | '/screens/cart'
     | '/screens/catalog'
+    | '/screens/checkout-address'
+    | '/screens/checkout-delivery'
+    | '/screens/checkout-payment'
     | '/screens/create-shop'
     | '/screens/home'
     | '/screens/login'
     | '/screens/merchant'
+    | '/screens/order-confirmed'
     | '/screens/product'
     | '/screens/register-client'
     | '/screens/register-merchant'
@@ -313,6 +373,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ScreensProductRouteImport
       parentRoute: typeof ScreensRoute
     }
+    '/screens/order-confirmed': {
+      id: '/screens/order-confirmed'
+      path: '/order-confirmed'
+      fullPath: '/screens/order-confirmed'
+      preLoaderRoute: typeof ScreensOrderConfirmedRouteImport
+      parentRoute: typeof ScreensRoute
+    }
     '/screens/merchant': {
       id: '/screens/merchant'
       path: '/merchant'
@@ -341,11 +408,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ScreensCreateShopRouteImport
       parentRoute: typeof ScreensRoute
     }
+    '/screens/checkout-payment': {
+      id: '/screens/checkout-payment'
+      path: '/checkout-payment'
+      fullPath: '/screens/checkout-payment'
+      preLoaderRoute: typeof ScreensCheckoutPaymentRouteImport
+      parentRoute: typeof ScreensRoute
+    }
+    '/screens/checkout-delivery': {
+      id: '/screens/checkout-delivery'
+      path: '/checkout-delivery'
+      fullPath: '/screens/checkout-delivery'
+      preLoaderRoute: typeof ScreensCheckoutDeliveryRouteImport
+      parentRoute: typeof ScreensRoute
+    }
+    '/screens/checkout-address': {
+      id: '/screens/checkout-address'
+      path: '/checkout-address'
+      fullPath: '/screens/checkout-address'
+      preLoaderRoute: typeof ScreensCheckoutAddressRouteImport
+      parentRoute: typeof ScreensRoute
+    }
     '/screens/catalog': {
       id: '/screens/catalog'
       path: '/catalog'
       fullPath: '/screens/catalog'
       preLoaderRoute: typeof ScreensCatalogRouteImport
+      parentRoute: typeof ScreensRoute
+    }
+    '/screens/cart': {
+      id: '/screens/cart'
+      path: '/cart'
+      fullPath: '/screens/cart'
+      preLoaderRoute: typeof ScreensCartRouteImport
       parentRoute: typeof ScreensRoute
     }
     '/screens/admin-shops': {
@@ -384,11 +479,16 @@ interface ScreensRouteChildren {
   ScreensAdminRoute: typeof ScreensAdminRoute
   ScreensAdminManagersRoute: typeof ScreensAdminManagersRoute
   ScreensAdminShopsRoute: typeof ScreensAdminShopsRoute
+  ScreensCartRoute: typeof ScreensCartRoute
   ScreensCatalogRoute: typeof ScreensCatalogRoute
+  ScreensCheckoutAddressRoute: typeof ScreensCheckoutAddressRoute
+  ScreensCheckoutDeliveryRoute: typeof ScreensCheckoutDeliveryRoute
+  ScreensCheckoutPaymentRoute: typeof ScreensCheckoutPaymentRoute
   ScreensCreateShopRoute: typeof ScreensCreateShopRoute
   ScreensHomeRoute: typeof ScreensHomeRoute
   ScreensLoginRoute: typeof ScreensLoginRoute
   ScreensMerchantRoute: typeof ScreensMerchantRoute
+  ScreensOrderConfirmedRoute: typeof ScreensOrderConfirmedRoute
   ScreensProductRoute: typeof ScreensProductRoute
   ScreensRegisterClientRoute: typeof ScreensRegisterClientRoute
   ScreensRegisterMerchantRoute: typeof ScreensRegisterMerchantRoute
@@ -403,11 +503,16 @@ const ScreensRouteChildren: ScreensRouteChildren = {
   ScreensAdminRoute: ScreensAdminRoute,
   ScreensAdminManagersRoute: ScreensAdminManagersRoute,
   ScreensAdminShopsRoute: ScreensAdminShopsRoute,
+  ScreensCartRoute: ScreensCartRoute,
   ScreensCatalogRoute: ScreensCatalogRoute,
+  ScreensCheckoutAddressRoute: ScreensCheckoutAddressRoute,
+  ScreensCheckoutDeliveryRoute: ScreensCheckoutDeliveryRoute,
+  ScreensCheckoutPaymentRoute: ScreensCheckoutPaymentRoute,
   ScreensCreateShopRoute: ScreensCreateShopRoute,
   ScreensHomeRoute: ScreensHomeRoute,
   ScreensLoginRoute: ScreensLoginRoute,
   ScreensMerchantRoute: ScreensMerchantRoute,
+  ScreensOrderConfirmedRoute: ScreensOrderConfirmedRoute,
   ScreensProductRoute: ScreensProductRoute,
   ScreensRegisterClientRoute: ScreensRegisterClientRoute,
   ScreensRegisterMerchantRoute: ScreensRegisterMerchantRoute,
