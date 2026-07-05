@@ -27,6 +27,7 @@ import { Route as ScreensMerchantRouteImport } from './routes/screens.merchant'
 import { Route as ScreensLoginRouteImport } from './routes/screens.login'
 import { Route as ScreensLiveSalesRouteImport } from './routes/screens.live-sales'
 import { Route as ScreensHomeRouteImport } from './routes/screens.home'
+import { Route as ScreensDeliveryConfirmRouteImport } from './routes/screens.delivery-confirm'
 import { Route as ScreensCreateShopRouteImport } from './routes/screens.create-shop'
 import { Route as ScreensCheckoutPaymentRouteImport } from './routes/screens.checkout-payment'
 import { Route as ScreensCheckoutDeliveryRouteImport } from './routes/screens.checkout-delivery'
@@ -129,6 +130,11 @@ const ScreensHomeRoute = ScreensHomeRouteImport.update({
   path: '/home',
   getParentRoute: () => ScreensRoute,
 } as any)
+const ScreensDeliveryConfirmRoute = ScreensDeliveryConfirmRouteImport.update({
+  id: '/delivery-confirm',
+  path: '/delivery-confirm',
+  getParentRoute: () => ScreensRoute,
+} as any)
 const ScreensCreateShopRoute = ScreensCreateShopRouteImport.update({
   id: '/create-shop',
   path: '/create-shop',
@@ -199,6 +205,7 @@ export interface FileRoutesByFullPath {
   '/screens/checkout-delivery': typeof ScreensCheckoutDeliveryRoute
   '/screens/checkout-payment': typeof ScreensCheckoutPaymentRoute
   '/screens/create-shop': typeof ScreensCreateShopRoute
+  '/screens/delivery-confirm': typeof ScreensDeliveryConfirmRoute
   '/screens/home': typeof ScreensHomeRoute
   '/screens/live-sales': typeof ScreensLiveSalesRoute
   '/screens/login': typeof ScreensLoginRoute
@@ -230,6 +237,7 @@ export interface FileRoutesByTo {
   '/screens/checkout-delivery': typeof ScreensCheckoutDeliveryRoute
   '/screens/checkout-payment': typeof ScreensCheckoutPaymentRoute
   '/screens/create-shop': typeof ScreensCreateShopRoute
+  '/screens/delivery-confirm': typeof ScreensDeliveryConfirmRoute
   '/screens/home': typeof ScreensHomeRoute
   '/screens/live-sales': typeof ScreensLiveSalesRoute
   '/screens/login': typeof ScreensLoginRoute
@@ -262,6 +270,7 @@ export interface FileRoutesById {
   '/screens/checkout-delivery': typeof ScreensCheckoutDeliveryRoute
   '/screens/checkout-payment': typeof ScreensCheckoutPaymentRoute
   '/screens/create-shop': typeof ScreensCreateShopRoute
+  '/screens/delivery-confirm': typeof ScreensDeliveryConfirmRoute
   '/screens/home': typeof ScreensHomeRoute
   '/screens/live-sales': typeof ScreensLiveSalesRoute
   '/screens/login': typeof ScreensLoginRoute
@@ -295,6 +304,7 @@ export interface FileRouteTypes {
     | '/screens/checkout-delivery'
     | '/screens/checkout-payment'
     | '/screens/create-shop'
+    | '/screens/delivery-confirm'
     | '/screens/home'
     | '/screens/live-sales'
     | '/screens/login'
@@ -326,6 +336,7 @@ export interface FileRouteTypes {
     | '/screens/checkout-delivery'
     | '/screens/checkout-payment'
     | '/screens/create-shop'
+    | '/screens/delivery-confirm'
     | '/screens/home'
     | '/screens/live-sales'
     | '/screens/login'
@@ -357,6 +368,7 @@ export interface FileRouteTypes {
     | '/screens/checkout-delivery'
     | '/screens/checkout-payment'
     | '/screens/create-shop'
+    | '/screens/delivery-confirm'
     | '/screens/home'
     | '/screens/live-sales'
     | '/screens/login'
@@ -508,6 +520,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ScreensHomeRouteImport
       parentRoute: typeof ScreensRoute
     }
+    '/screens/delivery-confirm': {
+      id: '/screens/delivery-confirm'
+      path: '/delivery-confirm'
+      fullPath: '/screens/delivery-confirm'
+      preLoaderRoute: typeof ScreensDeliveryConfirmRouteImport
+      parentRoute: typeof ScreensRoute
+    }
     '/screens/create-shop': {
       id: '/screens/create-shop'
       path: '/create-shop'
@@ -600,6 +619,7 @@ interface ScreensRouteChildren {
   ScreensCheckoutDeliveryRoute: typeof ScreensCheckoutDeliveryRoute
   ScreensCheckoutPaymentRoute: typeof ScreensCheckoutPaymentRoute
   ScreensCreateShopRoute: typeof ScreensCreateShopRoute
+  ScreensDeliveryConfirmRoute: typeof ScreensDeliveryConfirmRoute
   ScreensHomeRoute: typeof ScreensHomeRoute
   ScreensLiveSalesRoute: typeof ScreensLiveSalesRoute
   ScreensLoginRoute: typeof ScreensLoginRoute
@@ -630,6 +650,7 @@ const ScreensRouteChildren: ScreensRouteChildren = {
   ScreensCheckoutDeliveryRoute: ScreensCheckoutDeliveryRoute,
   ScreensCheckoutPaymentRoute: ScreensCheckoutPaymentRoute,
   ScreensCreateShopRoute: ScreensCreateShopRoute,
+  ScreensDeliveryConfirmRoute: ScreensDeliveryConfirmRoute,
   ScreensHomeRoute: ScreensHomeRoute,
   ScreensLiveSalesRoute: ScreensLiveSalesRoute,
   ScreensLoginRoute: ScreensLoginRoute,
