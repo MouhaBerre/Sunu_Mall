@@ -11,12 +11,16 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ScreensRouteImport } from './routes/screens'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ScreensWishlistRouteImport } from './routes/screens.wishlist'
 import { Route as ScreensVerifyEmailRouteImport } from './routes/screens.verify-email'
 import { Route as ScreensSplashRouteImport } from './routes/screens.splash'
+import { Route as ScreensSearchRouteImport } from './routes/screens.search'
 import { Route as ScreensRegisterMerchantRouteImport } from './routes/screens.register-merchant'
 import { Route as ScreensRegisterClientRouteImport } from './routes/screens.register-client'
+import { Route as ScreensProductRouteImport } from './routes/screens.product'
 import { Route as ScreensMerchantRouteImport } from './routes/screens.merchant'
 import { Route as ScreensLoginRouteImport } from './routes/screens.login'
+import { Route as ScreensHomeRouteImport } from './routes/screens.home'
 import { Route as ScreensCreateShopRouteImport } from './routes/screens.create-shop'
 import { Route as ScreensCatalogRouteImport } from './routes/screens.catalog'
 import { Route as ScreensAdminShopsRouteImport } from './routes/screens.admin-shops'
@@ -34,6 +38,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ScreensWishlistRoute = ScreensWishlistRouteImport.update({
+  id: '/wishlist',
+  path: '/wishlist',
+  getParentRoute: () => ScreensRoute,
+} as any)
 const ScreensVerifyEmailRoute = ScreensVerifyEmailRouteImport.update({
   id: '/verify-email',
   path: '/verify-email',
@@ -42,6 +51,11 @@ const ScreensVerifyEmailRoute = ScreensVerifyEmailRouteImport.update({
 const ScreensSplashRoute = ScreensSplashRouteImport.update({
   id: '/splash',
   path: '/splash',
+  getParentRoute: () => ScreensRoute,
+} as any)
+const ScreensSearchRoute = ScreensSearchRouteImport.update({
+  id: '/search',
+  path: '/search',
   getParentRoute: () => ScreensRoute,
 } as any)
 const ScreensRegisterMerchantRoute = ScreensRegisterMerchantRouteImport.update({
@@ -54,6 +68,11 @@ const ScreensRegisterClientRoute = ScreensRegisterClientRouteImport.update({
   path: '/register-client',
   getParentRoute: () => ScreensRoute,
 } as any)
+const ScreensProductRoute = ScreensProductRouteImport.update({
+  id: '/product',
+  path: '/product',
+  getParentRoute: () => ScreensRoute,
+} as any)
 const ScreensMerchantRoute = ScreensMerchantRouteImport.update({
   id: '/merchant',
   path: '/merchant',
@@ -62,6 +81,11 @@ const ScreensMerchantRoute = ScreensMerchantRouteImport.update({
 const ScreensLoginRoute = ScreensLoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => ScreensRoute,
+} as any)
+const ScreensHomeRoute = ScreensHomeRouteImport.update({
+  id: '/home',
+  path: '/home',
   getParentRoute: () => ScreensRoute,
 } as any)
 const ScreensCreateShopRoute = ScreensCreateShopRouteImport.update({
@@ -104,12 +128,16 @@ export interface FileRoutesByFullPath {
   '/screens/admin-shops': typeof ScreensAdminShopsRoute
   '/screens/catalog': typeof ScreensCatalogRoute
   '/screens/create-shop': typeof ScreensCreateShopRoute
+  '/screens/home': typeof ScreensHomeRoute
   '/screens/login': typeof ScreensLoginRoute
   '/screens/merchant': typeof ScreensMerchantRoute
+  '/screens/product': typeof ScreensProductRoute
   '/screens/register-client': typeof ScreensRegisterClientRoute
   '/screens/register-merchant': typeof ScreensRegisterMerchantRoute
+  '/screens/search': typeof ScreensSearchRoute
   '/screens/splash': typeof ScreensSplashRoute
   '/screens/verify-email': typeof ScreensVerifyEmailRoute
+  '/screens/wishlist': typeof ScreensWishlistRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -120,12 +148,16 @@ export interface FileRoutesByTo {
   '/screens/admin-shops': typeof ScreensAdminShopsRoute
   '/screens/catalog': typeof ScreensCatalogRoute
   '/screens/create-shop': typeof ScreensCreateShopRoute
+  '/screens/home': typeof ScreensHomeRoute
   '/screens/login': typeof ScreensLoginRoute
   '/screens/merchant': typeof ScreensMerchantRoute
+  '/screens/product': typeof ScreensProductRoute
   '/screens/register-client': typeof ScreensRegisterClientRoute
   '/screens/register-merchant': typeof ScreensRegisterMerchantRoute
+  '/screens/search': typeof ScreensSearchRoute
   '/screens/splash': typeof ScreensSplashRoute
   '/screens/verify-email': typeof ScreensVerifyEmailRoute
+  '/screens/wishlist': typeof ScreensWishlistRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -137,12 +169,16 @@ export interface FileRoutesById {
   '/screens/admin-shops': typeof ScreensAdminShopsRoute
   '/screens/catalog': typeof ScreensCatalogRoute
   '/screens/create-shop': typeof ScreensCreateShopRoute
+  '/screens/home': typeof ScreensHomeRoute
   '/screens/login': typeof ScreensLoginRoute
   '/screens/merchant': typeof ScreensMerchantRoute
+  '/screens/product': typeof ScreensProductRoute
   '/screens/register-client': typeof ScreensRegisterClientRoute
   '/screens/register-merchant': typeof ScreensRegisterMerchantRoute
+  '/screens/search': typeof ScreensSearchRoute
   '/screens/splash': typeof ScreensSplashRoute
   '/screens/verify-email': typeof ScreensVerifyEmailRoute
+  '/screens/wishlist': typeof ScreensWishlistRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -155,12 +191,16 @@ export interface FileRouteTypes {
     | '/screens/admin-shops'
     | '/screens/catalog'
     | '/screens/create-shop'
+    | '/screens/home'
     | '/screens/login'
     | '/screens/merchant'
+    | '/screens/product'
     | '/screens/register-client'
     | '/screens/register-merchant'
+    | '/screens/search'
     | '/screens/splash'
     | '/screens/verify-email'
+    | '/screens/wishlist'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -171,12 +211,16 @@ export interface FileRouteTypes {
     | '/screens/admin-shops'
     | '/screens/catalog'
     | '/screens/create-shop'
+    | '/screens/home'
     | '/screens/login'
     | '/screens/merchant'
+    | '/screens/product'
     | '/screens/register-client'
     | '/screens/register-merchant'
+    | '/screens/search'
     | '/screens/splash'
     | '/screens/verify-email'
+    | '/screens/wishlist'
   id:
     | '__root__'
     | '/'
@@ -187,12 +231,16 @@ export interface FileRouteTypes {
     | '/screens/admin-shops'
     | '/screens/catalog'
     | '/screens/create-shop'
+    | '/screens/home'
     | '/screens/login'
     | '/screens/merchant'
+    | '/screens/product'
     | '/screens/register-client'
     | '/screens/register-merchant'
+    | '/screens/search'
     | '/screens/splash'
     | '/screens/verify-email'
+    | '/screens/wishlist'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -216,6 +264,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/screens/wishlist': {
+      id: '/screens/wishlist'
+      path: '/wishlist'
+      fullPath: '/screens/wishlist'
+      preLoaderRoute: typeof ScreensWishlistRouteImport
+      parentRoute: typeof ScreensRoute
+    }
     '/screens/verify-email': {
       id: '/screens/verify-email'
       path: '/verify-email'
@@ -228,6 +283,13 @@ declare module '@tanstack/react-router' {
       path: '/splash'
       fullPath: '/screens/splash'
       preLoaderRoute: typeof ScreensSplashRouteImport
+      parentRoute: typeof ScreensRoute
+    }
+    '/screens/search': {
+      id: '/screens/search'
+      path: '/search'
+      fullPath: '/screens/search'
+      preLoaderRoute: typeof ScreensSearchRouteImport
       parentRoute: typeof ScreensRoute
     }
     '/screens/register-merchant': {
@@ -244,6 +306,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ScreensRegisterClientRouteImport
       parentRoute: typeof ScreensRoute
     }
+    '/screens/product': {
+      id: '/screens/product'
+      path: '/product'
+      fullPath: '/screens/product'
+      preLoaderRoute: typeof ScreensProductRouteImport
+      parentRoute: typeof ScreensRoute
+    }
     '/screens/merchant': {
       id: '/screens/merchant'
       path: '/merchant'
@@ -256,6 +325,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/screens/login'
       preLoaderRoute: typeof ScreensLoginRouteImport
+      parentRoute: typeof ScreensRoute
+    }
+    '/screens/home': {
+      id: '/screens/home'
+      path: '/home'
+      fullPath: '/screens/home'
+      preLoaderRoute: typeof ScreensHomeRouteImport
       parentRoute: typeof ScreensRoute
     }
     '/screens/create-shop': {
@@ -310,12 +386,16 @@ interface ScreensRouteChildren {
   ScreensAdminShopsRoute: typeof ScreensAdminShopsRoute
   ScreensCatalogRoute: typeof ScreensCatalogRoute
   ScreensCreateShopRoute: typeof ScreensCreateShopRoute
+  ScreensHomeRoute: typeof ScreensHomeRoute
   ScreensLoginRoute: typeof ScreensLoginRoute
   ScreensMerchantRoute: typeof ScreensMerchantRoute
+  ScreensProductRoute: typeof ScreensProductRoute
   ScreensRegisterClientRoute: typeof ScreensRegisterClientRoute
   ScreensRegisterMerchantRoute: typeof ScreensRegisterMerchantRoute
+  ScreensSearchRoute: typeof ScreensSearchRoute
   ScreensSplashRoute: typeof ScreensSplashRoute
   ScreensVerifyEmailRoute: typeof ScreensVerifyEmailRoute
+  ScreensWishlistRoute: typeof ScreensWishlistRoute
 }
 
 const ScreensRouteChildren: ScreensRouteChildren = {
@@ -325,12 +405,16 @@ const ScreensRouteChildren: ScreensRouteChildren = {
   ScreensAdminShopsRoute: ScreensAdminShopsRoute,
   ScreensCatalogRoute: ScreensCatalogRoute,
   ScreensCreateShopRoute: ScreensCreateShopRoute,
+  ScreensHomeRoute: ScreensHomeRoute,
   ScreensLoginRoute: ScreensLoginRoute,
   ScreensMerchantRoute: ScreensMerchantRoute,
+  ScreensProductRoute: ScreensProductRoute,
   ScreensRegisterClientRoute: ScreensRegisterClientRoute,
   ScreensRegisterMerchantRoute: ScreensRegisterMerchantRoute,
+  ScreensSearchRoute: ScreensSearchRoute,
   ScreensSplashRoute: ScreensSplashRoute,
   ScreensVerifyEmailRoute: ScreensVerifyEmailRoute,
+  ScreensWishlistRoute: ScreensWishlistRoute,
 }
 
 const ScreensRouteWithChildren =
