@@ -18,7 +18,9 @@ import { Route as ScreensSearchRouteImport } from './routes/screens.search'
 import { Route as ScreensRegisterMerchantRouteImport } from './routes/screens.register-merchant'
 import { Route as ScreensRegisterClientRouteImport } from './routes/screens.register-client'
 import { Route as ScreensProductRouteImport } from './routes/screens.product'
+import { Route as ScreensOrdersRouteImport } from './routes/screens.orders'
 import { Route as ScreensOrderConfirmedRouteImport } from './routes/screens.order-confirmed'
+import { Route as ScreensNotificationsRouteImport } from './routes/screens.notifications'
 import { Route as ScreensMerchantRouteImport } from './routes/screens.merchant'
 import { Route as ScreensLoginRouteImport } from './routes/screens.login'
 import { Route as ScreensHomeRouteImport } from './routes/screens.home'
@@ -78,9 +80,19 @@ const ScreensProductRoute = ScreensProductRouteImport.update({
   path: '/product',
   getParentRoute: () => ScreensRoute,
 } as any)
+const ScreensOrdersRoute = ScreensOrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
+  getParentRoute: () => ScreensRoute,
+} as any)
 const ScreensOrderConfirmedRoute = ScreensOrderConfirmedRouteImport.update({
   id: '/order-confirmed',
   path: '/order-confirmed',
+  getParentRoute: () => ScreensRoute,
+} as any)
+const ScreensNotificationsRoute = ScreensNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
   getParentRoute: () => ScreensRoute,
 } as any)
 const ScreensMerchantRoute = ScreensMerchantRouteImport.update({
@@ -165,7 +177,9 @@ export interface FileRoutesByFullPath {
   '/screens/home': typeof ScreensHomeRoute
   '/screens/login': typeof ScreensLoginRoute
   '/screens/merchant': typeof ScreensMerchantRoute
+  '/screens/notifications': typeof ScreensNotificationsRoute
   '/screens/order-confirmed': typeof ScreensOrderConfirmedRoute
+  '/screens/orders': typeof ScreensOrdersRoute
   '/screens/product': typeof ScreensProductRoute
   '/screens/register-client': typeof ScreensRegisterClientRoute
   '/screens/register-merchant': typeof ScreensRegisterMerchantRoute
@@ -190,7 +204,9 @@ export interface FileRoutesByTo {
   '/screens/home': typeof ScreensHomeRoute
   '/screens/login': typeof ScreensLoginRoute
   '/screens/merchant': typeof ScreensMerchantRoute
+  '/screens/notifications': typeof ScreensNotificationsRoute
   '/screens/order-confirmed': typeof ScreensOrderConfirmedRoute
+  '/screens/orders': typeof ScreensOrdersRoute
   '/screens/product': typeof ScreensProductRoute
   '/screens/register-client': typeof ScreensRegisterClientRoute
   '/screens/register-merchant': typeof ScreensRegisterMerchantRoute
@@ -216,7 +232,9 @@ export interface FileRoutesById {
   '/screens/home': typeof ScreensHomeRoute
   '/screens/login': typeof ScreensLoginRoute
   '/screens/merchant': typeof ScreensMerchantRoute
+  '/screens/notifications': typeof ScreensNotificationsRoute
   '/screens/order-confirmed': typeof ScreensOrderConfirmedRoute
+  '/screens/orders': typeof ScreensOrdersRoute
   '/screens/product': typeof ScreensProductRoute
   '/screens/register-client': typeof ScreensRegisterClientRoute
   '/screens/register-merchant': typeof ScreensRegisterMerchantRoute
@@ -243,7 +261,9 @@ export interface FileRouteTypes {
     | '/screens/home'
     | '/screens/login'
     | '/screens/merchant'
+    | '/screens/notifications'
     | '/screens/order-confirmed'
+    | '/screens/orders'
     | '/screens/product'
     | '/screens/register-client'
     | '/screens/register-merchant'
@@ -268,7 +288,9 @@ export interface FileRouteTypes {
     | '/screens/home'
     | '/screens/login'
     | '/screens/merchant'
+    | '/screens/notifications'
     | '/screens/order-confirmed'
+    | '/screens/orders'
     | '/screens/product'
     | '/screens/register-client'
     | '/screens/register-merchant'
@@ -293,7 +315,9 @@ export interface FileRouteTypes {
     | '/screens/home'
     | '/screens/login'
     | '/screens/merchant'
+    | '/screens/notifications'
     | '/screens/order-confirmed'
+    | '/screens/orders'
     | '/screens/product'
     | '/screens/register-client'
     | '/screens/register-merchant'
@@ -373,11 +397,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ScreensProductRouteImport
       parentRoute: typeof ScreensRoute
     }
+    '/screens/orders': {
+      id: '/screens/orders'
+      path: '/orders'
+      fullPath: '/screens/orders'
+      preLoaderRoute: typeof ScreensOrdersRouteImport
+      parentRoute: typeof ScreensRoute
+    }
     '/screens/order-confirmed': {
       id: '/screens/order-confirmed'
       path: '/order-confirmed'
       fullPath: '/screens/order-confirmed'
       preLoaderRoute: typeof ScreensOrderConfirmedRouteImport
+      parentRoute: typeof ScreensRoute
+    }
+    '/screens/notifications': {
+      id: '/screens/notifications'
+      path: '/notifications'
+      fullPath: '/screens/notifications'
+      preLoaderRoute: typeof ScreensNotificationsRouteImport
       parentRoute: typeof ScreensRoute
     }
     '/screens/merchant': {
@@ -488,7 +526,9 @@ interface ScreensRouteChildren {
   ScreensHomeRoute: typeof ScreensHomeRoute
   ScreensLoginRoute: typeof ScreensLoginRoute
   ScreensMerchantRoute: typeof ScreensMerchantRoute
+  ScreensNotificationsRoute: typeof ScreensNotificationsRoute
   ScreensOrderConfirmedRoute: typeof ScreensOrderConfirmedRoute
+  ScreensOrdersRoute: typeof ScreensOrdersRoute
   ScreensProductRoute: typeof ScreensProductRoute
   ScreensRegisterClientRoute: typeof ScreensRegisterClientRoute
   ScreensRegisterMerchantRoute: typeof ScreensRegisterMerchantRoute
@@ -512,7 +552,9 @@ const ScreensRouteChildren: ScreensRouteChildren = {
   ScreensHomeRoute: ScreensHomeRoute,
   ScreensLoginRoute: ScreensLoginRoute,
   ScreensMerchantRoute: ScreensMerchantRoute,
+  ScreensNotificationsRoute: ScreensNotificationsRoute,
   ScreensOrderConfirmedRoute: ScreensOrderConfirmedRoute,
+  ScreensOrdersRoute: ScreensOrdersRoute,
   ScreensProductRoute: ScreensProductRoute,
   ScreensRegisterClientRoute: ScreensRegisterClientRoute,
   ScreensRegisterMerchantRoute: ScreensRegisterMerchantRoute,
