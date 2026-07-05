@@ -15,7 +15,14 @@ import { Route as ScreensVerifyEmailRouteImport } from './routes/screens.verify-
 import { Route as ScreensSplashRouteImport } from './routes/screens.splash'
 import { Route as ScreensRegisterMerchantRouteImport } from './routes/screens.register-merchant'
 import { Route as ScreensRegisterClientRouteImport } from './routes/screens.register-client'
+import { Route as ScreensMerchantRouteImport } from './routes/screens.merchant'
 import { Route as ScreensLoginRouteImport } from './routes/screens.login'
+import { Route as ScreensCreateShopRouteImport } from './routes/screens.create-shop'
+import { Route as ScreensCatalogRouteImport } from './routes/screens.catalog'
+import { Route as ScreensAdminShopsRouteImport } from './routes/screens.admin-shops'
+import { Route as ScreensAdminManagersRouteImport } from './routes/screens.admin-managers'
+import { Route as ScreensAdminRouteImport } from './routes/screens.admin'
+import { Route as ScreensAddProductRouteImport } from './routes/screens.add-product'
 
 const ScreensRoute = ScreensRouteImport.update({
   id: '/screens',
@@ -47,16 +54,58 @@ const ScreensRegisterClientRoute = ScreensRegisterClientRouteImport.update({
   path: '/register-client',
   getParentRoute: () => ScreensRoute,
 } as any)
+const ScreensMerchantRoute = ScreensMerchantRouteImport.update({
+  id: '/merchant',
+  path: '/merchant',
+  getParentRoute: () => ScreensRoute,
+} as any)
 const ScreensLoginRoute = ScreensLoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => ScreensRoute,
+} as any)
+const ScreensCreateShopRoute = ScreensCreateShopRouteImport.update({
+  id: '/create-shop',
+  path: '/create-shop',
+  getParentRoute: () => ScreensRoute,
+} as any)
+const ScreensCatalogRoute = ScreensCatalogRouteImport.update({
+  id: '/catalog',
+  path: '/catalog',
+  getParentRoute: () => ScreensRoute,
+} as any)
+const ScreensAdminShopsRoute = ScreensAdminShopsRouteImport.update({
+  id: '/admin-shops',
+  path: '/admin-shops',
+  getParentRoute: () => ScreensRoute,
+} as any)
+const ScreensAdminManagersRoute = ScreensAdminManagersRouteImport.update({
+  id: '/admin-managers',
+  path: '/admin-managers',
+  getParentRoute: () => ScreensRoute,
+} as any)
+const ScreensAdminRoute = ScreensAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => ScreensRoute,
+} as any)
+const ScreensAddProductRoute = ScreensAddProductRouteImport.update({
+  id: '/add-product',
+  path: '/add-product',
   getParentRoute: () => ScreensRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/screens': typeof ScreensRouteWithChildren
+  '/screens/add-product': typeof ScreensAddProductRoute
+  '/screens/admin': typeof ScreensAdminRoute
+  '/screens/admin-managers': typeof ScreensAdminManagersRoute
+  '/screens/admin-shops': typeof ScreensAdminShopsRoute
+  '/screens/catalog': typeof ScreensCatalogRoute
+  '/screens/create-shop': typeof ScreensCreateShopRoute
   '/screens/login': typeof ScreensLoginRoute
+  '/screens/merchant': typeof ScreensMerchantRoute
   '/screens/register-client': typeof ScreensRegisterClientRoute
   '/screens/register-merchant': typeof ScreensRegisterMerchantRoute
   '/screens/splash': typeof ScreensSplashRoute
@@ -65,7 +114,14 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/screens': typeof ScreensRouteWithChildren
+  '/screens/add-product': typeof ScreensAddProductRoute
+  '/screens/admin': typeof ScreensAdminRoute
+  '/screens/admin-managers': typeof ScreensAdminManagersRoute
+  '/screens/admin-shops': typeof ScreensAdminShopsRoute
+  '/screens/catalog': typeof ScreensCatalogRoute
+  '/screens/create-shop': typeof ScreensCreateShopRoute
   '/screens/login': typeof ScreensLoginRoute
+  '/screens/merchant': typeof ScreensMerchantRoute
   '/screens/register-client': typeof ScreensRegisterClientRoute
   '/screens/register-merchant': typeof ScreensRegisterMerchantRoute
   '/screens/splash': typeof ScreensSplashRoute
@@ -75,7 +131,14 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/screens': typeof ScreensRouteWithChildren
+  '/screens/add-product': typeof ScreensAddProductRoute
+  '/screens/admin': typeof ScreensAdminRoute
+  '/screens/admin-managers': typeof ScreensAdminManagersRoute
+  '/screens/admin-shops': typeof ScreensAdminShopsRoute
+  '/screens/catalog': typeof ScreensCatalogRoute
+  '/screens/create-shop': typeof ScreensCreateShopRoute
   '/screens/login': typeof ScreensLoginRoute
+  '/screens/merchant': typeof ScreensMerchantRoute
   '/screens/register-client': typeof ScreensRegisterClientRoute
   '/screens/register-merchant': typeof ScreensRegisterMerchantRoute
   '/screens/splash': typeof ScreensSplashRoute
@@ -86,7 +149,14 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/screens'
+    | '/screens/add-product'
+    | '/screens/admin'
+    | '/screens/admin-managers'
+    | '/screens/admin-shops'
+    | '/screens/catalog'
+    | '/screens/create-shop'
     | '/screens/login'
+    | '/screens/merchant'
     | '/screens/register-client'
     | '/screens/register-merchant'
     | '/screens/splash'
@@ -95,7 +165,14 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/screens'
+    | '/screens/add-product'
+    | '/screens/admin'
+    | '/screens/admin-managers'
+    | '/screens/admin-shops'
+    | '/screens/catalog'
+    | '/screens/create-shop'
     | '/screens/login'
+    | '/screens/merchant'
     | '/screens/register-client'
     | '/screens/register-merchant'
     | '/screens/splash'
@@ -104,7 +181,14 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/screens'
+    | '/screens/add-product'
+    | '/screens/admin'
+    | '/screens/admin-managers'
+    | '/screens/admin-shops'
+    | '/screens/catalog'
+    | '/screens/create-shop'
     | '/screens/login'
+    | '/screens/merchant'
     | '/screens/register-client'
     | '/screens/register-merchant'
     | '/screens/splash'
@@ -160,6 +244,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ScreensRegisterClientRouteImport
       parentRoute: typeof ScreensRoute
     }
+    '/screens/merchant': {
+      id: '/screens/merchant'
+      path: '/merchant'
+      fullPath: '/screens/merchant'
+      preLoaderRoute: typeof ScreensMerchantRouteImport
+      parentRoute: typeof ScreensRoute
+    }
     '/screens/login': {
       id: '/screens/login'
       path: '/login'
@@ -167,11 +258,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ScreensLoginRouteImport
       parentRoute: typeof ScreensRoute
     }
+    '/screens/create-shop': {
+      id: '/screens/create-shop'
+      path: '/create-shop'
+      fullPath: '/screens/create-shop'
+      preLoaderRoute: typeof ScreensCreateShopRouteImport
+      parentRoute: typeof ScreensRoute
+    }
+    '/screens/catalog': {
+      id: '/screens/catalog'
+      path: '/catalog'
+      fullPath: '/screens/catalog'
+      preLoaderRoute: typeof ScreensCatalogRouteImport
+      parentRoute: typeof ScreensRoute
+    }
+    '/screens/admin-shops': {
+      id: '/screens/admin-shops'
+      path: '/admin-shops'
+      fullPath: '/screens/admin-shops'
+      preLoaderRoute: typeof ScreensAdminShopsRouteImport
+      parentRoute: typeof ScreensRoute
+    }
+    '/screens/admin-managers': {
+      id: '/screens/admin-managers'
+      path: '/admin-managers'
+      fullPath: '/screens/admin-managers'
+      preLoaderRoute: typeof ScreensAdminManagersRouteImport
+      parentRoute: typeof ScreensRoute
+    }
+    '/screens/admin': {
+      id: '/screens/admin'
+      path: '/admin'
+      fullPath: '/screens/admin'
+      preLoaderRoute: typeof ScreensAdminRouteImport
+      parentRoute: typeof ScreensRoute
+    }
+    '/screens/add-product': {
+      id: '/screens/add-product'
+      path: '/add-product'
+      fullPath: '/screens/add-product'
+      preLoaderRoute: typeof ScreensAddProductRouteImport
+      parentRoute: typeof ScreensRoute
+    }
   }
 }
 
 interface ScreensRouteChildren {
+  ScreensAddProductRoute: typeof ScreensAddProductRoute
+  ScreensAdminRoute: typeof ScreensAdminRoute
+  ScreensAdminManagersRoute: typeof ScreensAdminManagersRoute
+  ScreensAdminShopsRoute: typeof ScreensAdminShopsRoute
+  ScreensCatalogRoute: typeof ScreensCatalogRoute
+  ScreensCreateShopRoute: typeof ScreensCreateShopRoute
   ScreensLoginRoute: typeof ScreensLoginRoute
+  ScreensMerchantRoute: typeof ScreensMerchantRoute
   ScreensRegisterClientRoute: typeof ScreensRegisterClientRoute
   ScreensRegisterMerchantRoute: typeof ScreensRegisterMerchantRoute
   ScreensSplashRoute: typeof ScreensSplashRoute
@@ -179,7 +319,14 @@ interface ScreensRouteChildren {
 }
 
 const ScreensRouteChildren: ScreensRouteChildren = {
+  ScreensAddProductRoute: ScreensAddProductRoute,
+  ScreensAdminRoute: ScreensAdminRoute,
+  ScreensAdminManagersRoute: ScreensAdminManagersRoute,
+  ScreensAdminShopsRoute: ScreensAdminShopsRoute,
+  ScreensCatalogRoute: ScreensCatalogRoute,
+  ScreensCreateShopRoute: ScreensCreateShopRoute,
   ScreensLoginRoute: ScreensLoginRoute,
+  ScreensMerchantRoute: ScreensMerchantRoute,
   ScreensRegisterClientRoute: ScreensRegisterClientRoute,
   ScreensRegisterMerchantRoute: ScreensRegisterMerchantRoute,
   ScreensSplashRoute: ScreensSplashRoute,
