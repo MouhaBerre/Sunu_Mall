@@ -11,6 +11,11 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ScreensRouteImport } from './routes/screens'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ScreensVerifyEmailRouteImport } from './routes/screens.verify-email'
+import { Route as ScreensSplashRouteImport } from './routes/screens.splash'
+import { Route as ScreensRegisterMerchantRouteImport } from './routes/screens.register-merchant'
+import { Route as ScreensRegisterClientRouteImport } from './routes/screens.register-client'
+import { Route as ScreensLoginRouteImport } from './routes/screens.login'
 
 const ScreensRoute = ScreensRouteImport.update({
   id: '/screens',
@@ -22,31 +27,93 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ScreensVerifyEmailRoute = ScreensVerifyEmailRouteImport.update({
+  id: '/verify-email',
+  path: '/verify-email',
+  getParentRoute: () => ScreensRoute,
+} as any)
+const ScreensSplashRoute = ScreensSplashRouteImport.update({
+  id: '/splash',
+  path: '/splash',
+  getParentRoute: () => ScreensRoute,
+} as any)
+const ScreensRegisterMerchantRoute = ScreensRegisterMerchantRouteImport.update({
+  id: '/register-merchant',
+  path: '/register-merchant',
+  getParentRoute: () => ScreensRoute,
+} as any)
+const ScreensRegisterClientRoute = ScreensRegisterClientRouteImport.update({
+  id: '/register-client',
+  path: '/register-client',
+  getParentRoute: () => ScreensRoute,
+} as any)
+const ScreensLoginRoute = ScreensLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => ScreensRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/screens': typeof ScreensRoute
+  '/screens': typeof ScreensRouteWithChildren
+  '/screens/login': typeof ScreensLoginRoute
+  '/screens/register-client': typeof ScreensRegisterClientRoute
+  '/screens/register-merchant': typeof ScreensRegisterMerchantRoute
+  '/screens/splash': typeof ScreensSplashRoute
+  '/screens/verify-email': typeof ScreensVerifyEmailRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/screens': typeof ScreensRoute
+  '/screens': typeof ScreensRouteWithChildren
+  '/screens/login': typeof ScreensLoginRoute
+  '/screens/register-client': typeof ScreensRegisterClientRoute
+  '/screens/register-merchant': typeof ScreensRegisterMerchantRoute
+  '/screens/splash': typeof ScreensSplashRoute
+  '/screens/verify-email': typeof ScreensVerifyEmailRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/screens': typeof ScreensRoute
+  '/screens': typeof ScreensRouteWithChildren
+  '/screens/login': typeof ScreensLoginRoute
+  '/screens/register-client': typeof ScreensRegisterClientRoute
+  '/screens/register-merchant': typeof ScreensRegisterMerchantRoute
+  '/screens/splash': typeof ScreensSplashRoute
+  '/screens/verify-email': typeof ScreensVerifyEmailRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/screens'
+  fullPaths:
+    | '/'
+    | '/screens'
+    | '/screens/login'
+    | '/screens/register-client'
+    | '/screens/register-merchant'
+    | '/screens/splash'
+    | '/screens/verify-email'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/screens'
-  id: '__root__' | '/' | '/screens'
+  to:
+    | '/'
+    | '/screens'
+    | '/screens/login'
+    | '/screens/register-client'
+    | '/screens/register-merchant'
+    | '/screens/splash'
+    | '/screens/verify-email'
+  id:
+    | '__root__'
+    | '/'
+    | '/screens'
+    | '/screens/login'
+    | '/screens/register-client'
+    | '/screens/register-merchant'
+    | '/screens/splash'
+    | '/screens/verify-email'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  ScreensRoute: typeof ScreensRoute
+  ScreensRoute: typeof ScreensRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +132,66 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/screens/verify-email': {
+      id: '/screens/verify-email'
+      path: '/verify-email'
+      fullPath: '/screens/verify-email'
+      preLoaderRoute: typeof ScreensVerifyEmailRouteImport
+      parentRoute: typeof ScreensRoute
+    }
+    '/screens/splash': {
+      id: '/screens/splash'
+      path: '/splash'
+      fullPath: '/screens/splash'
+      preLoaderRoute: typeof ScreensSplashRouteImport
+      parentRoute: typeof ScreensRoute
+    }
+    '/screens/register-merchant': {
+      id: '/screens/register-merchant'
+      path: '/register-merchant'
+      fullPath: '/screens/register-merchant'
+      preLoaderRoute: typeof ScreensRegisterMerchantRouteImport
+      parentRoute: typeof ScreensRoute
+    }
+    '/screens/register-client': {
+      id: '/screens/register-client'
+      path: '/register-client'
+      fullPath: '/screens/register-client'
+      preLoaderRoute: typeof ScreensRegisterClientRouteImport
+      parentRoute: typeof ScreensRoute
+    }
+    '/screens/login': {
+      id: '/screens/login'
+      path: '/login'
+      fullPath: '/screens/login'
+      preLoaderRoute: typeof ScreensLoginRouteImport
+      parentRoute: typeof ScreensRoute
+    }
   }
 }
 
+interface ScreensRouteChildren {
+  ScreensLoginRoute: typeof ScreensLoginRoute
+  ScreensRegisterClientRoute: typeof ScreensRegisterClientRoute
+  ScreensRegisterMerchantRoute: typeof ScreensRegisterMerchantRoute
+  ScreensSplashRoute: typeof ScreensSplashRoute
+  ScreensVerifyEmailRoute: typeof ScreensVerifyEmailRoute
+}
+
+const ScreensRouteChildren: ScreensRouteChildren = {
+  ScreensLoginRoute: ScreensLoginRoute,
+  ScreensRegisterClientRoute: ScreensRegisterClientRoute,
+  ScreensRegisterMerchantRoute: ScreensRegisterMerchantRoute,
+  ScreensSplashRoute: ScreensSplashRoute,
+  ScreensVerifyEmailRoute: ScreensVerifyEmailRoute,
+}
+
+const ScreensRouteWithChildren =
+  ScreensRoute._addFileChildren(ScreensRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  ScreensRoute: ScreensRoute,
+  ScreensRoute: ScreensRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
