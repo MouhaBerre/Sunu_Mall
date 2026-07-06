@@ -5,7 +5,8 @@ from .serializers import RegisterSerializer, LoginSerializer
 
 class RegisterView(generics.CreateAPIView):
     """
-    Inscription d'un nouvel utilisateur (Acheteur ou Vendeur).
+    Inscription d'un nouvel utilisateur (Acheteur, Vendeur, etc.).
+    Le rôle par défaut est 'buyer'.
     """
     serializer_class = RegisterSerializer
     permission_classes = [permissions.AllowAny]
@@ -14,20 +15,26 @@ class RegisterView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
-        token, created = Token.objects.get_or_create(user=user)
+        token, _ = Token.objects.get_or_create(user=user)
+        
+        roles = [ur.role.name for ur in user.user_roles.select_related('role')]
+
         return Response({
             "user": {
                 "id": user.id,
-                "username": user.username,
                 "email": user.email,
-                "role": user.role
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "phone": user.phone,
+                "roles": roles
             },
             "token": token.key
         }, status=status.HTTP_201_CREATED)
 
 class LoginView(generics.GenericAPIView):
     """
-    Connexion d'un utilisateur existant. Retourne un token d'authentification.
+    Connexion d'un utilisateur existant avec email et mot de passe.
+    Retourne un token d'authentification.
     """
     serializer_class = LoginSerializer
     permission_classes = [permissions.AllowAny]
@@ -36,13 +43,18 @@ class LoginView(generics.GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data
-        token, created = Token.objects.get_or_create(user=user)
+        token, _ = Token.objects.get_or_create(user=user)
+        
+        roles = [ur.role.name for ur in user.user_roles.select_related('role')]
+        
         return Response({
             "user": {
                 "id": user.id,
-                "username": user.username,
                 "email": user.email,
-                "role": user.role
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "phone": user.phone,
+                "roles": roles
             },
             "token": token.key
         })
