@@ -38,9 +38,3 @@ Thumbs.db
 
 # ===== Données de monitoring/volumes locaux =====
 infra/monitoring/grafana/data/
-infra/volumes/
-infra/logs/
-infra/nginx/ssl/
-infra/backups/
-infra/env/*.env
-!infra/env/*.env.example
