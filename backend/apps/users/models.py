@@ -4,6 +4,8 @@ Modèles liés aux utilisateurs de SUNU MALL.
 import uuid
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.db.models.signals import post_migrate
+from django.dispatch import receiver
 from django.utils import timezone
 
 
@@ -43,13 +45,23 @@ class User(AbstractUser):
 
 
 class Role(models.Model):
+    class RoleName(models.TextChoices):
+        ADMIN = 'admin', 'Administrateur'
+        MERCHANT = 'merchant', 'Commerçant'
+        CLIENT = 'client', 'Client'
+        DRIVER = 'driver', 'Livreur'
+
     id = models.AutoField(primary_key=True)
-    name = models.CharField(max_length=100, unique=True)
+    name = models.CharField(
+        max_length=100,
+        unique=True,
+        choices=RoleName.choices
+    )
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.name
+        return self.get_name_display()
 
 
 class Permission(models.Model):
@@ -121,3 +133,23 @@ class Token(models.Model):
 
     def __str__(self):
         return f"{self.type} token for {self.user.email}"
+
+
+@receiver(post_migrate)
+def create_default_roles(sender, **kwargs):
+    """Créer les rôles par défaut après les migrations."""
+    from django.apps import apps
+    Role = apps.get_model('users', 'Role')
+
+    roles = [
+        (Role.RoleName.ADMIN, 'Administrateur avec tous les droits'),
+        (Role.RoleName.MERCHANT, 'Commerçant gérant sa propre boutique'),
+        (Role.RoleName.CLIENT, 'Client faisant des achats sur la plateforme'),
+        (Role.RoleName.DRIVER, 'Livreur effectuant les livraisons'),
+    ]
+
+    for role_name, role_description in roles:
+        Role.objects.get_or_create(
+            name=role_name,
+            defaults={'description': role_description}
+        )
