@@ -16,8 +16,8 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    # Librairies tierces
     "rest_framework",
+    "rest_framework.authtoken",
     "corsheaders",
     "django_filters",
     "django_celery_beat",
@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     "apps.shopping",
     "apps.analytics",
     "apps.ia",
+    "apps.auth",
 ]
 
 MIDDLEWARE = [
@@ -110,6 +111,8 @@ CORS_ALLOWED_ORIGINS = config(
     cast=Csv(),
 )
 
+AUTH_USER_MODEL = "users.User"
+
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
@@ -124,4 +127,3 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-AUTH_USER_MODEL = "users.User"

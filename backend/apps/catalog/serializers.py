@@ -5,14 +5,14 @@ from .models import Category, Product, ProductImage
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = ["id", "seller", "name", "slug", "created_at"]
-        read_only_fields = ["id", "created_at"]
+        fields = ["id", "parent", "name", "created_at", "updated_at"]
+        read_only_fields = ["id", "created_at", "updated_at"]
 
 
 class ProductImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductImage
-        fields = ["id", "image", "is_primary"]
+        fields = ["id", "minio_path", "position", "created_at"]
 
 
 class ProductSerializer(serializers.ModelSerializer):
@@ -21,8 +21,8 @@ class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = [
-            "id", "seller", "category", "name", "description",
-            "price", "stock", "is_active", "images",
+            "id", "store", "category", "brand", "name", "description",
+            "base_price", "status", "images",
             "created_at", "updated_at",
         ]
         read_only_fields = ["id", "created_at", "updated_at"]

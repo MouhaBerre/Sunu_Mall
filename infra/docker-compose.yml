@@ -6,7 +6,7 @@
 #   alias sunu="docker compose -f infra/docker-compose.yml"
 # puis "sunu up", "sunu logs backend", etc.
 # =========================================================
-version: "3.9"
+
 
 services:
   # ---------- Backend Django ----------
