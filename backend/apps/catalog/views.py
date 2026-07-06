@@ -9,7 +9,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
     serializer_class = CategorySerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["seller"]
+    filterset_fields = []
 
 
 class ProductViewSet(viewsets.ModelViewSet):
@@ -19,9 +19,9 @@ class ProductViewSet(viewsets.ModelViewSet):
     (à affiner : un vendeur ne devrait modifier que ses propres produits).
     """
 
-    queryset = Product.objects.filter(is_active=True)
+    queryset = Product.objects.filter(status=Product.Status.ACTIVE)
     serializer_class = ProductSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
-    filterset_fields = ["seller", "category", "is_active"]
+    filterset_fields = ["store", "category", "status"]
     search_fields = ["name", "description"]

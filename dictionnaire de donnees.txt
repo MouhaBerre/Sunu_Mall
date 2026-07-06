@@ -1,0 +1,442 @@
+# Dictionnaire de données — Préparation modèles Django
+
+> Référentiel unique consolidé à partir des 7 modules ER/Classes.
+> Objectif : servir de base directe à l'écriture des `models.py` Django (les tables PostgreSQL seront générées par les migrations Django, pas créées manuellement).
+
+**Conventions de typage Django utilisées :**
+| Type diagramme | Type Django recommandé |
+|---|---|
+| UUID (PK) | `models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)` |
+| int (PK) | `models.AutoField` (implicite, `id` par défaut) |
+| string | `models.CharField(max_length=...)` |
+| text | `models.TextField()` |
+| bool | `models.BooleanField(default=...)` |
+| decimal | `models.DecimalField(max_digits=10, decimal_places=2)` |
+| date | `models.DateField()` |
+| datetime | `models.DateTimeField()` |
+| json | `models.JSONField()` |
+| FK | `models.ForeignKey('Cible', on_delete=models.PROTECT/CASCADE/SET_NULL, related_name=...)` |
+
+---
+
+## Module 1 — Utilisateurs
+
+### User
+| Champ | Type | Contrainte | Notes |
+|---|---|---|---|
+| id | UUID | PK | |
+| email | string | unique=True | login |
+| phone | string | null=True | |
+| first_name | string | | |
+| last_name | string | | |
+| is_active | bool | default=True | |
+| is_verified | bool | default=False | |
+
+> Recommandation : hériter de `AbstractBaseUser` + `PermissionsMixin`, ou étendre `AbstractUser` (Django fournit déjà `check_password`).
+
+### Role
+| Champ | Type | Contrainte |
+|---|---|---|
+| id | int | PK |
+| name | string | unique |
+| description | string | |
+
+### Permission
+| Champ | Type | Contrainte |
+|---|---|---|
+| id | int | PK |
+| code | string | unique |
+| label | string | |
+
+### RolePermission (table pivot Role↔Permission)
+| Champ | Type | Contrainte |
+|---|---|---|
+| id | int | PK |
+| role_id | FK → Role | |
+| permission_id | FK → Permission | |
+
+> Django : peut être remplacé par un `ManyToManyField(Permission, through='RolePermission')` sur `Role`.
+
+### UserRole (table pivot User↔Role)
+| Champ | Type | Contrainte |
+|---|---|---|
+| id | int | PK |
+| user_id | FK → User | |
+| role_id | FK → Role | |
+
+### Token
+| Champ | Type | Contrainte |
+|---|---|---|
+| id | int | PK |
+| user_id | FK → User | on_delete=CASCADE |
+| token | string | unique |
+| type | string | ex: reset_password, email_verif |
+| expires_at | datetime | |
+| used_at | datetime | null=True |
+
+### Session
+| Champ | Type | Contrainte |
+|---|---|---|
+| id | int | PK |
+| user_id | FK → User | on_delete=CASCADE |
+| refresh_token_hash | string | |
+| device_info | json | |
+| expires_at | datetime | |
+
+---
+
+## Module 2 — Catalogue & Boutiques
+
+### StoreCategory
+| Champ | Type | Contrainte |
+|---|---|---|
+| id | int | PK |
+| name | string | |
+
+### Store
+| Champ | Type | Contrainte |
+|---|---|---|
+| id | UUID | PK |
+| owner_id | FK → User | on_delete=PROTECT |
+| category_id | FK → StoreCategory | |
+| name | string | |
+| status | string | ex: pending/active/suspended |
+
+### StoreSettings
+| Champ | Type | Contrainte |
+|---|---|---|
+| id | UUID | PK |
+| store_id | FK → Store | OneToOneField |
+| business_hours | json | |
+| min_order_amount | decimal | |
+
+### StoreEmployee
+| Champ | Type | Contrainte |
+|---|---|---|
+| id | UUID | PK |
+| store_id | FK → Store | |
+| user_id | FK → User | |
+| role | string | ex: manager/staff |
+
+### Category (catégorie produit, arborescente)
+| Champ | Type | Contrainte |
+|---|---|---|
+| id | int | PK |
+| parent_id | FK → Category (self) | null=True |
+| name | string | |
+
+### Brand
+| Champ | Type | Contrainte |
+|---|---|---|
+| id | int | PK |
+| name | string | |
+| logo_url | string | |
+
+### Product
+| Champ | Type | Contrainte |
+|---|---|---|
+| id | UUID | PK |
+| store_id | FK → Store | |
+| category_id | FK → Category | |
+| brand_id | FK → Brand | null=True |
+| name | string | |
+| base_price | decimal | |
+| status | string | ex: draft/published/archived |
+
+### ProductImage
+| Champ | Type | Contrainte |
+|---|---|---|
+| id | UUID | PK |
+| product_id | FK → Product | |
+| minio_path | string | chemin objet MinIO/S3 |
+| position | int | ordre d'affichage |
+
+### ProductVariant
+| Champ | Type | Contrainte |
+|---|---|---|
+| id | UUID | PK |
+| product_id | FK → Product | |
+| sku | string | unique |
+| attributes | json | ex: {"couleur":"rouge","taille":"M"} |
+| price | decimal | surcharge du base_price |
+
+### Inventory
+| Champ | Type | Contrainte |
+|---|---|---|
+| id | UUID | PK |
+| variant_id | FK → ProductVariant | OneToOneField |
+| quantity | int | |
+| reserved_quantity | int | réservé (panier non finalisé) |
+
+### Review
+| Champ | Type | Contrainte |
+|---|---|---|
+| id | UUID | PK |
+| product_id | FK → Product | |
+| user_id | FK → User | |
+| rating | int | validators 1-5 |
+| comment | text | |
+
+---
+
+## Module 3 — Commandes & Livraison
+
+### DeliveryZone
+| Champ | Type | Contrainte |
+|---|---|---|
+| id | int | PK |
+| name | string | |
+| boundary_geojson | json | |
+
+### Driver
+| Champ | Type | Contrainte |
+|---|---|---|
+| id | UUID | PK |
+| user_id | FK → User | OneToOneField |
+| zone_id | FK → DeliveryZone | |
+| vehicle_type | string | |
+| availability_status | string | |
+
+### Address
+| Champ | Type | Contrainte |
+|---|---|---|
+| id | UUID | PK |
+| user_id | FK → User | |
+| label | string | ex: "Domicile" |
+| latitude | decimal | |
+| longitude | decimal | |
+
+### Order — ⚠️ *entité canonique (voir note en bas de section)*
+| Champ | Type | Contrainte |
+|---|---|---|
+| id | UUID | PK |
+| customer_id | FK → User | |
+| store_id | FK → Store | |
+| address_id | FK → Address | |
+| total_amount | decimal | |
+| delivery_fee | decimal | |
+| status | string | ex: pending/paid/shipped/delivered/cancelled |
+
+### OrderItem
+| Champ | Type | Contrainte |
+|---|---|---|
+| id | UUID | PK |
+| order_id | FK → Order | |
+| product_variant_id | FK → ProductVariant | |
+| quantity | int | |
+| unit_price | decimal | prix figé au moment de la commande |
+
+### OrderHistory
+| Champ | Type | Contrainte |
+|---|---|---|
+| id | int | PK |
+| order_id | FK → Order | |
+| previous_status | string | |
+| new_status | string | |
+| changed_by | FK → User | |
+| changed_at | datetime | |
+
+### Delivery
+| Champ | Type | Contrainte |
+|---|---|---|
+| id | UUID | PK |
+| order_id | FK → Order | OneToOneField (0..1) |
+| driver_id | FK → Driver | |
+| status | string | |
+| picked_up_at | datetime | null=True |
+| delivered_at | datetime | null=True |
+
+### DeliveryTracking
+| Champ | Type | Contrainte |
+|---|---|---|
+| id | int | PK |
+| delivery_id | FK → Delivery | |
+| latitude | decimal | |
+| longitude | decimal | |
+| recorded_at | datetime | |
+
+> **Note de correction** : le schéma ER du module Paiements affichait une version simplifiée de `Order` avec `driver_id` directement dessus. **Le champ `driver_id` appartient à `Delivery`, pas à `Order`** — c'est la version ci-dessus (module Commandes) qui fait foi.
+
+---
+
+## Module 4 — Paiements
+
+### Payment
+| Champ | Type | Contrainte |
+|---|---|---|
+| id | UUID | PK |
+| order_id | FK → Order | OneToOneField (0..1) |
+| amount | decimal | |
+| method | string | ex: card/mobile_money/cash |
+| status | string | ex: pending/succeeded/failed |
+| provider_ref | string | référence prestataire de paiement |
+| paid_at | datetime | null=True |
+
+### Refund
+| Champ | Type | Contrainte |
+|---|---|---|
+| id | int | PK |
+| payment_id | FK → Payment | |
+| amount | decimal | |
+| reason | text | |
+| status | string | |
+| refunded_at | datetime | null=True |
+
+### Transaction (grand livre interne)
+| Champ | Type | Contrainte |
+|---|---|---|
+| id | int | PK |
+| payment_id | FK → Payment | |
+| type | string | ex: commission/payout/refund |
+| payee_type | string | discriminant polymorphe : "store"/"driver"/"platform" |
+| payee_id | UUID | référence libre selon payee_type (pas de FK stricte possible) |
+| amount | decimal | |
+| status | string | |
+
+### CommissionRule
+| Champ | Type | Contrainte |
+|---|---|---|
+| id | int | PK |
+| applies_to | string | ex: "store"/"driver" |
+| percentage | decimal | |
+| valid_from | datetime | |
+| valid_to | datetime | null=True |
+
+---
+
+## Module 5 — Monétisation & Notifications
+
+### SubscriptionPlan
+| Champ | Type | Contrainte |
+|---|---|---|
+| id | int | PK |
+| name | string | |
+| price | decimal | |
+| billing_cycle | string | ex: monthly/yearly |
+| features | json | |
+
+### Subscription — *association polymorphe*
+| Champ | Type | Contrainte |
+|---|---|---|
+| id | UUID | PK |
+| plan_id | FK → SubscriptionPlan | |
+| subscriber_type | string | discriminant : "user" ou "store" |
+| subscriber_id | UUID | référence libre selon subscriber_type |
+| status | string | |
+| starts_at | date | |
+| ends_at | date | null=True |
+
+> **Django** : pas de FK directe possible sur un champ polymorphe. Deux options : `django.contrib.contenttypes` (GenericForeignKey) — recommandé et propre — ou garder `subscriber_type`/`subscriber_id` bruts avec validation applicative.
+
+### Invoice
+| Champ | Type | Contrainte |
+|---|---|---|
+| id | UUID | PK |
+| subscription_id | FK → Subscription | |
+| amount | decimal | |
+| status | string | |
+| issued_at | date | |
+| due_at | date | |
+
+### SponsoredProduct
+| Champ | Type | Contrainte |
+|---|---|---|
+| id | UUID | PK |
+| product_id | FK → Product | |
+| store_id | FK → Store | |
+| daily_budget | decimal | |
+| starts_at | date | |
+| ends_at | date | |
+| status | string | |
+
+### Notification
+| Champ | Type | Contrainte |
+|---|---|---|
+| id | UUID | PK |
+| user_id | FK → User | |
+| channel | string | ex: email/sms/push |
+| subject | string | |
+| status | string | |
+| sent_at | datetime | null=True |
+| metadata | json | |
+
+---
+
+## Module 6 — Shopping
+
+### Cart
+| Champ | Type | Contrainte |
+|---|---|---|
+| id | UUID | PK |
+| user_id | FK → User | OneToOneField |
+| created_at | datetime | auto_now_add |
+| updated_at | datetime | auto_now |
+
+### CartItem
+| Champ | Type | Contrainte |
+|---|---|---|
+| id | UUID | PK |
+| cart_id | FK → Cart | |
+| product_variant_id | FK → ProductVariant | |
+| quantity | int | |
+| added_at | datetime | |
+
+### Wishlist
+| Champ | Type | Contrainte |
+|---|---|---|
+| id | UUID | PK |
+| user_id | FK → User | OneToOneField |
+| created_at | datetime | |
+
+### WishlistItem
+| Champ | Type | Contrainte |
+|---|---|---|
+| id | UUID | PK |
+| wishlist_id | FK → Wishlist | |
+| product_id | FK → Product | |
+| added_at | datetime | |
+
+---
+
+## Module 7 — Analytics
+
+### Report
+| Champ | Type | Contrainte |
+|---|---|---|
+| id | UUID | PK |
+| generated_by | FK → User | |
+| type | string | |
+| period_start | date | |
+| period_end | date | |
+| minio_path | string | fichier généré (PDF/Excel) |
+| created_at | datetime | |
+
+### SalesStatistic
+| Champ | Type | Contrainte |
+|---|---|---|
+| id | UUID | PK |
+| store_id | FK → Store | |
+| date | date | |
+| total_sales | decimal | |
+| total_orders | int | |
+| avg_order_value | decimal | |
+
+### TrafficStatistic
+| Champ | Type | Contrainte |
+|---|---|---|
+| id | UUID | PK |
+| store_id | FK → Store | |
+| date | date | |
+| visits | int | |
+| unique_visitors | int | |
+| conversion_rate | decimal | |
+
+---
+
+## Points d'attention pour l'implémentation Django
+
+1. **App structure recommandée** : découper en apps Django alignées sur les modules (`users`, `catalog`, `orders`, `payments`, `monetization`, `shopping`, `analytics`) pour garder la même clarté que les diagrammes.
+2. **UUID partout où c'est une entité "métier" exposée en API** (évite l'énumération d'IDs) ; `int` autoincrement réservé aux tables techniques/pivot.
+3. **`payee_id` et `subscriber_id`** ne sont pas des FK Django classiques (association polymorphe) → utiliser soit `GenericForeignKey` (contenttypes), soit une validation au niveau du serializer/service.
+4. **Champs `status`** : à convertir en `choices` (via `TextChoices`) plutôt que string libre, pour chaque entité concernée (Order, Payment, Delivery, Product, Subscription...).
+5. **on_delete** à définir soigneusement : `PROTECT` pour les relations financières (Order, Payment), `CASCADE` pour les enfants de composition (OrderItem, CartItem, ProductImage), `SET_NULL` pour les relations optionnelles.
