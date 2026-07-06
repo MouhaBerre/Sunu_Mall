@@ -1,6 +1,6 @@
 from rest_framework import viewsets, permissions
-from .models import User, SellerProfile
-from .serializers import UserSerializer, SellerProfileSerializer
+from .models import User
+from .serializers import UserSerializer
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -12,10 +12,4 @@ class UserViewSet(viewsets.ModelViewSet):
 
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-
-class SellerProfileViewSet(viewsets.ModelViewSet):
-    queryset = SellerProfile.objects.all()
-    serializer_class = SellerProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
