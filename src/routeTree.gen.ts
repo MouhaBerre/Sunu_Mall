@@ -27,6 +27,9 @@ import { Route as ScreensMerchantRouteImport } from './routes/screens.merchant'
 import { Route as ScreensLoginRouteImport } from './routes/screens.login'
 import { Route as ScreensLiveSalesRouteImport } from './routes/screens.live-sales'
 import { Route as ScreensHomeRouteImport } from './routes/screens.home'
+import { Route as ScreensDriverLoginRouteImport } from './routes/screens.driver-login'
+import { Route as ScreensDriverDeliveryRouteImport } from './routes/screens.driver-delivery'
+import { Route as ScreensDriverDashboardRouteImport } from './routes/screens.driver-dashboard'
 import { Route as ScreensDeliveryConfirmRouteImport } from './routes/screens.delivery-confirm'
 import { Route as ScreensCreateShopRouteImport } from './routes/screens.create-shop'
 import { Route as ScreensCheckoutPaymentRouteImport } from './routes/screens.checkout-payment'
@@ -130,6 +133,21 @@ const ScreensHomeRoute = ScreensHomeRouteImport.update({
   path: '/home',
   getParentRoute: () => ScreensRoute,
 } as any)
+const ScreensDriverLoginRoute = ScreensDriverLoginRouteImport.update({
+  id: '/driver-login',
+  path: '/driver-login',
+  getParentRoute: () => ScreensRoute,
+} as any)
+const ScreensDriverDeliveryRoute = ScreensDriverDeliveryRouteImport.update({
+  id: '/driver-delivery',
+  path: '/driver-delivery',
+  getParentRoute: () => ScreensRoute,
+} as any)
+const ScreensDriverDashboardRoute = ScreensDriverDashboardRouteImport.update({
+  id: '/driver-dashboard',
+  path: '/driver-dashboard',
+  getParentRoute: () => ScreensRoute,
+} as any)
 const ScreensDeliveryConfirmRoute = ScreensDeliveryConfirmRouteImport.update({
   id: '/delivery-confirm',
   path: '/delivery-confirm',
@@ -206,6 +224,9 @@ export interface FileRoutesByFullPath {
   '/screens/checkout-payment': typeof ScreensCheckoutPaymentRoute
   '/screens/create-shop': typeof ScreensCreateShopRoute
   '/screens/delivery-confirm': typeof ScreensDeliveryConfirmRoute
+  '/screens/driver-dashboard': typeof ScreensDriverDashboardRoute
+  '/screens/driver-delivery': typeof ScreensDriverDeliveryRoute
+  '/screens/driver-login': typeof ScreensDriverLoginRoute
   '/screens/home': typeof ScreensHomeRoute
   '/screens/live-sales': typeof ScreensLiveSalesRoute
   '/screens/login': typeof ScreensLoginRoute
@@ -238,6 +259,9 @@ export interface FileRoutesByTo {
   '/screens/checkout-payment': typeof ScreensCheckoutPaymentRoute
   '/screens/create-shop': typeof ScreensCreateShopRoute
   '/screens/delivery-confirm': typeof ScreensDeliveryConfirmRoute
+  '/screens/driver-dashboard': typeof ScreensDriverDashboardRoute
+  '/screens/driver-delivery': typeof ScreensDriverDeliveryRoute
+  '/screens/driver-login': typeof ScreensDriverLoginRoute
   '/screens/home': typeof ScreensHomeRoute
   '/screens/live-sales': typeof ScreensLiveSalesRoute
   '/screens/login': typeof ScreensLoginRoute
@@ -271,6 +295,9 @@ export interface FileRoutesById {
   '/screens/checkout-payment': typeof ScreensCheckoutPaymentRoute
   '/screens/create-shop': typeof ScreensCreateShopRoute
   '/screens/delivery-confirm': typeof ScreensDeliveryConfirmRoute
+  '/screens/driver-dashboard': typeof ScreensDriverDashboardRoute
+  '/screens/driver-delivery': typeof ScreensDriverDeliveryRoute
+  '/screens/driver-login': typeof ScreensDriverLoginRoute
   '/screens/home': typeof ScreensHomeRoute
   '/screens/live-sales': typeof ScreensLiveSalesRoute
   '/screens/login': typeof ScreensLoginRoute
@@ -305,6 +332,9 @@ export interface FileRouteTypes {
     | '/screens/checkout-payment'
     | '/screens/create-shop'
     | '/screens/delivery-confirm'
+    | '/screens/driver-dashboard'
+    | '/screens/driver-delivery'
+    | '/screens/driver-login'
     | '/screens/home'
     | '/screens/live-sales'
     | '/screens/login'
@@ -337,6 +367,9 @@ export interface FileRouteTypes {
     | '/screens/checkout-payment'
     | '/screens/create-shop'
     | '/screens/delivery-confirm'
+    | '/screens/driver-dashboard'
+    | '/screens/driver-delivery'
+    | '/screens/driver-login'
     | '/screens/home'
     | '/screens/live-sales'
     | '/screens/login'
@@ -369,6 +402,9 @@ export interface FileRouteTypes {
     | '/screens/checkout-payment'
     | '/screens/create-shop'
     | '/screens/delivery-confirm'
+    | '/screens/driver-dashboard'
+    | '/screens/driver-delivery'
+    | '/screens/driver-login'
     | '/screens/home'
     | '/screens/live-sales'
     | '/screens/login'
@@ -520,6 +556,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ScreensHomeRouteImport
       parentRoute: typeof ScreensRoute
     }
+    '/screens/driver-login': {
+      id: '/screens/driver-login'
+      path: '/driver-login'
+      fullPath: '/screens/driver-login'
+      preLoaderRoute: typeof ScreensDriverLoginRouteImport
+      parentRoute: typeof ScreensRoute
+    }
+    '/screens/driver-delivery': {
+      id: '/screens/driver-delivery'
+      path: '/driver-delivery'
+      fullPath: '/screens/driver-delivery'
+      preLoaderRoute: typeof ScreensDriverDeliveryRouteImport
+      parentRoute: typeof ScreensRoute
+    }
+    '/screens/driver-dashboard': {
+      id: '/screens/driver-dashboard'
+      path: '/driver-dashboard'
+      fullPath: '/screens/driver-dashboard'
+      preLoaderRoute: typeof ScreensDriverDashboardRouteImport
+      parentRoute: typeof ScreensRoute
+    }
     '/screens/delivery-confirm': {
       id: '/screens/delivery-confirm'
       path: '/delivery-confirm'
@@ -620,6 +677,9 @@ interface ScreensRouteChildren {
   ScreensCheckoutPaymentRoute: typeof ScreensCheckoutPaymentRoute
   ScreensCreateShopRoute: typeof ScreensCreateShopRoute
   ScreensDeliveryConfirmRoute: typeof ScreensDeliveryConfirmRoute
+  ScreensDriverDashboardRoute: typeof ScreensDriverDashboardRoute
+  ScreensDriverDeliveryRoute: typeof ScreensDriverDeliveryRoute
+  ScreensDriverLoginRoute: typeof ScreensDriverLoginRoute
   ScreensHomeRoute: typeof ScreensHomeRoute
   ScreensLiveSalesRoute: typeof ScreensLiveSalesRoute
   ScreensLoginRoute: typeof ScreensLoginRoute
@@ -651,6 +711,9 @@ const ScreensRouteChildren: ScreensRouteChildren = {
   ScreensCheckoutPaymentRoute: ScreensCheckoutPaymentRoute,
   ScreensCreateShopRoute: ScreensCreateShopRoute,
   ScreensDeliveryConfirmRoute: ScreensDeliveryConfirmRoute,
+  ScreensDriverDashboardRoute: ScreensDriverDashboardRoute,
+  ScreensDriverDeliveryRoute: ScreensDriverDeliveryRoute,
+  ScreensDriverLoginRoute: ScreensDriverLoginRoute,
   ScreensHomeRoute: ScreensHomeRoute,
   ScreensLiveSalesRoute: ScreensLiveSalesRoute,
   ScreensLoginRoute: ScreensLoginRoute,
@@ -679,13 +742,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
