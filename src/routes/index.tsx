@@ -3,7 +3,7 @@ import { Logo } from "@/components/brand/Logo";
 import { SCREENS } from "@/lib/screens";
 import {
   Smartphone, Monitor, MonitorSmartphone, ArrowRight, ShoppingBag, Store, Bike, Shield,
-  Wave, Sparkles, Truck, CreditCard, MapPin,
+  Sparkles, Truck, CreditCard, MapPin,
 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
