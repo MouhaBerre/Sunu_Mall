@@ -27,6 +27,9 @@ INSTALLED_APPS = [
     "apps.catalog",
     "apps.orders",
     "apps.payments",
+    "apps.monetization",
+    "apps.shopping",
+    "apps.analytics",
     "apps.ia",
     "apps.auth",
 ]
@@ -104,7 +107,7 @@ REST_FRAMEWORK = {
 # --- CORS : autorise le frontend Next.js, le dashboard vendeur, le mobile ---
 CORS_ALLOWED_ORIGINS = config(
     "CORS_ALLOWED_ORIGINS",
-    default="http://localhost:3000,http://localhost:3001",
+    default="http://localhost:3002,http://localhost:3003",
     cast=Csv(),
 )
 
@@ -124,3 +127,4 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+AUTH_USER_MODEL = "users.User"
