@@ -1,0 +1,17 @@
+# Dépendances spécifiques à l'app IA (backend/apps/ia/).
+# Volontairement séparées de base.txt : ces libs sont souvent lourdes
+# (numpy, torch, transformers...) et ne doivent pas alourdir un build
+# backend qui n'a pas besoin d'IA (ex: un simple worker Celery léger).
+#
+# -r base.txt veut dire : "installe d'abord tout ce qu'il y a dans base.txt"
+-r base.txt
+
+numpy>=1.26,<1.27
+# Ajoute ici tes libs IA au fur et à mesure des besoins réels, par exemple :
+# torch>=2.3,<2.4
+# transformers>=4.41,<4.42
+# scikit-learn>=1.5,<1.6
+#
+# Astuce : si une lib IA pousse l'image Docker au-delà de plusieurs Go,
+# c'est le signal qu'il est temps d'envisager de sortir l'app IA en
+# service à part (voir docs/architecture.md, section "IA").

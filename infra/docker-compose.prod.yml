@@ -1,0 +1,168 @@
+# =========================================================
+# SUNU MALL — Orchestration PROD de tous les services.
+# Lancer depuis la racine du repo : docker compose -f infra/docker-compose.prod.yml up -d
+# =========================================================
+version: "3.9"
+
+services:
+  # ---------- Backend Django ----------
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+      args:
+        REQUIREMENTS_FILE: requirements/base.txt
+    command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 4
+    volumes:
+      - ./volumes/media:/app/media
+      - ./logs/backend:/app/logs
+    env_file:
+      - ./env/backend.env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks: [sunu-mall]
+    restart: unless-stopped
+
+  celery-worker:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+      args:
+        REQUIREMENTS_FILE: requirements/base.txt
+    command: celery -A config worker -l info
+    volumes:
+      - ./logs/celery:/app/logs
+    env_file:
+      - ./env/backend.env
+    depends_on:
+      - backend
+      - redis
+    networks: [sunu-mall]
+    restart: unless-stopped
+
+  celery-beat:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+      args:
+        REQUIREMENTS_FILE: requirements/base.txt
+    command: celery -A config beat -l info
+    volumes:
+      - ./logs/celery:/app/logs
+    env_file:
+      - ./env/backend.env
+    depends_on:
+      - backend
+      - redis
+    networks: [sunu-mall]
+    restart: unless-stopped
+
+  # ---------- Frontend boutique (Next.js) ----------
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    environment:
+      NEXT_PUBLIC_API_URL: https://votre-domaine.com/api
+    depends_on:
+      - backend
+    networks: [sunu-mall]
+    restart: unless-stopped
+
+  # ---------- Dashboard vendeur ----------
+  seller-dashboard:
+    build:
+      context: ../seller-dashboard
+      dockerfile: Dockerfile
+    depends_on:
+      - backend
+    networks: [sunu-mall]
+    restart: unless-stopped
+
+  # ---------- Données ----------
+  db:
+    image: postgres:16-alpine
+    env_file:
+      - ./env/postgres.env
+    volumes:
+      - ./volumes/postgres:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [sunu-mall]
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    env_file:
+      - ./env/redis.env
+    volumes:
+      - ./volumes/redis:/data
+    networks: [sunu-mall]
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+    volumes:
+      - ./volumes/media:/data
+    networks: [sunu-mall]
+    restart: unless-stopped
+
+  # ---------- Monitoring ----------
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./monitoring/prometheus:/etc/prometheus
+      - ./volumes/prometheus:/prometheus
+    networks: [sunu-mall]
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+    volumes:
+      - ./volumes/grafana:/var/lib/grafana
+      - ./monitoring/grafana:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+    networks: [sunu-mall]
+    restart: unless-stopped
+
+  # ---------- Reverse proxy ----------
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - backend
+      - frontend
+      - seller-dashboard
+    networks: [sunu-mall]
+    restart: unless-stopped
+
+networks:
+  sunu-mall:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  minio_data:
+  prometheus_data:
+  grafana_data:
