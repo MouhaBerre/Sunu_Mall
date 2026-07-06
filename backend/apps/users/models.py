@@ -1,16 +1,12 @@
 """
 Modèles liés aux utilisateurs de SUNU MALL.
-
-On distingue deux rôles dès le départ, comme sur Amazon :
-- un Acheteur (Buyer) qui consulte/achète, sur web et mobile
-- un Vendeur (Seller) qui gère sa propre boutique
-
-À adapter librement selon le backlog réel (le backlog peut par
-exemple demander des rôles supplémentaires, des permissions fines,
-etc.) — ceci est juste un point de départ cohérent.
 """
+import uuid
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.db.models.signals import post_migrate
+from django.dispatch import receiver
+from django.utils import timezone
 
 
 class User(AbstractUser):
@@ -19,30 +15,141 @@ class User(AbstractUser):
     remplacer entièrement, pour garder la compatibilité avec
     l'admin Django et le système d'auth standard.
     """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    email = models.EmailField(unique=True)
+    phone = models.CharField(max_length=20, blank=True)
+    first_name = models.CharField(max_length=150, blank=True)
+    last_name = models.CharField(max_length=150, blank=True)
+    is_active = models.BooleanField(default=True)
+    is_verified = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
-    class Role(models.TextChoices):
-        BUYER = "buyer", "Acheteur"
-        SELLER = "seller", "Vendeur"
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
 
-    role = models.CharField(max_length=10, choices=Role.choices, default=Role.BUYER)
-    phone_number = models.CharField(max_length=20, blank=True)
+    class Meta:
+        ordering = ['-created_at']
+
+    def check_password(self, raw_password):
+        return super().check_password(raw_password)
+
+    def get_full_name(self):
+        return f"{self.first_name} {self.last_name}".strip()
+
+    def has_role(self, name):
+        return self.roles.filter(name=name).exists()
+
+    def __str__(self):
+        return f"{self.email} ({self.get_full_name()})"
+
+
+class Role(models.Model):
+    class RoleName(models.TextChoices):
+        ADMIN = 'admin', 'Administrateur'
+        MERCHANT = 'merchant', 'Commerçant'
+        CLIENT = 'client', 'Client'
+        DRIVER = 'driver', 'Livreur'
+
+    id = models.AutoField(primary_key=True)
+    name = models.CharField(
+        max_length=100,
+        unique=True,
+        choices=RoleName.choices
+    )
+    description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.username} ({self.get_role_display()})"
+        return self.get_name_display()
 
 
-class SellerProfile(models.Model):
-    """
-    Infos spécifiques à un vendeur : nom de boutique, etc.
-    Séparé de User pour ne pas alourdir le modèle de base avec
-    des champs qui ne concernent que les vendeurs.
-    """
-
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="seller_profile")
-    shop_name = models.CharField(max_length=255)
-    shop_description = models.TextField(blank=True)
-    is_verified = models.BooleanField(default=False)
+class Permission(models.Model):
+    id = models.AutoField(primary_key=True)
+    code = models.CharField(max_length=100, unique=True)
+    label = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.shop_name
+        return f"{self.code} - {self.label}"
+
+
+class UserRole(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_roles')
+    role = models.ForeignKey(Role, on_delete=models.CASCADE, related_name='role_users')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['user', 'role']
+
+
+class RolePermission(models.Model):
+    role = models.ForeignKey(Role, on_delete=models.CASCADE, related_name='role_permissions')
+    permission = models.ForeignKey(Permission, on_delete=models.CASCADE, related_name='permission_roles')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['role', 'permission']
+
+
+class Session(models.Model):
+    id = models.AutoField(primary_key=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sessions')
+    refresh_token_hash = models.CharField(max_length=255)
+    device_info = models.JSONField(default=dict)
+    expires_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def is_expired(self):
+        return timezone.now() > self.expires_at
+
+    def revoke(self):
+        self.expires_at = timezone.now()
+        self.save()
+
+    def __str__(self):
+        return f"Session for {self.user.email}"
+
+
+class Token(models.Model):
+    class TokenType(models.TextChoices):
+        EMAIL_VERIFICATION = 'email_verification', 'Email Verification'
+        PASSWORD_RESET = 'password_reset', 'Password Reset'
+
+    id = models.AutoField(primary_key=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tokens')
+    token = models.CharField(max_length=255, unique=True)
+    type = models.CharField(max_length=50, choices=TokenType.choices)
+    expires_at = models.DateTimeField()
+    used_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def is_valid(self):
+        return not self.used_at and timezone.now() <= self.expires_at
+
+    def mark_used(self):
+        self.used_at = timezone.now()
+        self.save()
+
+    def __str__(self):
+        return f"{self.type} token for {self.user.email}"
+
+
+@receiver(post_migrate)
+def create_default_roles(sender, **kwargs):
+    """Créer les rôles par défaut après les migrations."""
+    from django.apps import apps
+    Role = apps.get_model('users', 'Role')
+
+    roles = [
+        (Role.RoleName.ADMIN, 'Administrateur avec tous les droits'),
+        (Role.RoleName.MERCHANT, 'Commerçant gérant sa propre boutique'),
+        (Role.RoleName.CLIENT, 'Client faisant des achats sur la plateforme'),
+        (Role.RoleName.DRIVER, 'Livreur effectuant les livraisons'),
+    ]
+
+    for role_name, role_description in roles:
+        Role.objects.get_or_create(
+            name=role_name,
+            defaults={'description': role_description}
+        )

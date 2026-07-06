@@ -43,8 +43,8 @@ ENV PYTHONUNBUFFERED=1
 
 COPY . .
 
-EXPOSE 8000
+EXPOSE 8001
 
 # En dev, ce CMD est écrasé par docker-compose (reload activé).
 # En prod, on utilisera gunicorn (voir infra/).
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8001"]

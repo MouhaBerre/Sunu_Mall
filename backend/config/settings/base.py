@@ -16,8 +16,8 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    # Librairies tierces
     "rest_framework",
+    "rest_framework.authtoken",
     "corsheaders",
     "django_filters",
     "django_celery_beat",
@@ -27,7 +27,11 @@ INSTALLED_APPS = [
     "apps.catalog",
     "apps.orders",
     "apps.payments",
+    "apps.monetization",
+    "apps.shopping",
+    "apps.analytics",
     "apps.ia",
+    "apps.auth",
 ]
 
 MIDDLEWARE = [
@@ -103,9 +107,11 @@ REST_FRAMEWORK = {
 # --- CORS : autorise le frontend Next.js, le dashboard vendeur, le mobile ---
 CORS_ALLOWED_ORIGINS = config(
     "CORS_ALLOWED_ORIGINS",
-    default="http://localhost:3000,http://localhost:3001",
+    default="http://localhost:3002,http://localhost:3003",
     cast=Csv(),
 )
+
+AUTH_USER_MODEL = "users.User"
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
