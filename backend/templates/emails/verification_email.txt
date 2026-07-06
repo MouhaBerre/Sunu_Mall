@@ -1,0 +1,11 @@
+Bonjour {{ user.first_name }} !
+
+Merci de vous être inscrit sur SUNU MALL.
+
+Pour activer votre compte, veuillez cliquer sur le lien ci-dessous :
+{{ verification_url }}
+
+Si vous n'avez pas créé de compte, vous pouvez ignorer cet email.
+
+Cordialement,
+L'équipe SUNU MALL
