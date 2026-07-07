@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     "django_filters",
     "django_celery_beat",
     "storages",
+    "drf_spectacular",
     # Apps métier SUNU MALL — chacune correspond à un domaine clair
     "apps.users",
     "apps.catalog",
@@ -103,6 +104,16 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+# DRF Spectacular (Swagger/OpenAPI)
+SPECTACULAR_SETTINGS = {
+    "TITLE": "SUNU MALL API",
+    "DESCRIPTION": "Marketplace sénégalais — API REST",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "COMPONENT_SPLIT_REQUEST": True,
 }
 
 # JWT Settings
