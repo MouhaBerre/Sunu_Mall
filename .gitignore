@@ -42,3 +42,5 @@ Thumbs.db
 
 # ===== Données de monitoring/volumes locaux =====
 infra/monitoring/grafana/data/
+docs/commandes git.md
+docs/Une PR (Pull Request) est une deman.txt
