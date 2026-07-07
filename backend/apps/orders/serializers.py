@@ -5,7 +5,7 @@ from .models import Order, OrderItem
 class OrderItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrderItem
-        fields = ["id", "product", "quantity", "unit_price"]
+        fields = ["id", "product_variant", "quantity", "unit_price"]
 
 
 class OrderSerializer(serializers.ModelSerializer):
@@ -13,5 +13,5 @@ class OrderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Order
-        fields = ["id", "buyer", "status", "total_amount", "items", "created_at", "updated_at"]
+        fields = ["id", "customer", "status", "total_amount", "items", "created_at", "updated_at"]
         read_only_fields = ["id", "created_at", "updated_at"]

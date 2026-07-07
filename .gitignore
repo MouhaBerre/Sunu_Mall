@@ -4,6 +4,10 @@
 .env.*.local
 *.pem
 *.key
+infra/env/
+infra/volumes/
+docs/Mot de passe*.txt
+backend/celerybeat-schedule
 
 # ===== Python / Django (backend) =====
 __pycache__/
@@ -38,3 +42,5 @@ Thumbs.db
 
 # ===== Données de monitoring/volumes locaux =====
 infra/monitoring/grafana/data/
+docs/commandes git.md
+docs/Une PR (Pull Request) est une deman.txt
