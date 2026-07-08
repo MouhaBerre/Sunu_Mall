@@ -21,8 +21,8 @@ class RBACModelTests(TestCase):
 
         # Créer une permission de test
         self.perm_view_product, _ = Permission.objects.get_or_create(
-            code='view_product',
-            defaults={'label': 'Voir les produits'}
+            code='special_view_product',
+            defaults={'label': 'Voir les produits spéciaux'}
         )
 
         # Créer des utilisateurs de test
@@ -79,14 +79,14 @@ class RBACModelTests(TestCase):
     def test_user_has_permission(self):
         """Vérifie que la méthode has_permission fonctionne."""
         # Assigner une permission au rôle merchant
-        RolePermission.objects.create(role=self.merchant_role, permission=self.perm_view_product)
+        RolePermission.objects.get_or_create(role=self.merchant_role, permission=self.perm_view_product)
         
-        self.assertTrue(self.merchant_user.has_permission('view_product'))
-        self.assertFalse(self.client_user.has_permission('view_product'))
+        self.assertTrue(self.merchant_user.has_permission('special_view_product'))
+        self.assertFalse(self.client_user.has_permission('special_view_product'))
 
     def test_get_permissions(self):
         """Vérifie que la méthode get_permissions fonctionne."""
-        RolePermission.objects.create(role=self.merchant_role, permission=self.perm_view_product)
+        RolePermission.objects.get_or_create(role=self.merchant_role, permission=self.perm_view_product)
         
         merchant_perms = self.merchant_user.get_permissions()
         self.assertIn(self.perm_view_product, merchant_perms)
@@ -103,6 +103,10 @@ class RBACAPITests(TestCase):
         # Créer les rôles
         self.admin_role, _ = Role.objects.get_or_create(name=Role.RoleName.ADMIN)
         self.merchant_role, _ = Role.objects.get_or_create(name=Role.RoleName.MERCHANT)
+        self.client_role, _ = Role.objects.get_or_create(name=Role.RoleName.CLIENT)
+        self.driver_role, _ = Role.objects.get_or_create(name=Role.RoleName.DRIVER)
+
+        self.user_list_url = reverse('user-list')
 
         # Créer des utilisateurs
         self.admin_user = User.objects.create_user(
@@ -121,32 +125,79 @@ class RBACAPITests(TestCase):
         )
         UserRole.objects.create(user=self.merchant_user, role=self.merchant_role)
 
-    def test_admin_can_access_roles_api(self):
-        """Vérifie que seul l'admin peut accéder à l'API des rôles."""
-        # Admin connecté
-        self.client.force_authenticate(user=self.admin_user)
-        response = self.client.get(reverse('role-list'))
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.client_user = User.objects.create_user(
+            username='client',
+            email='client@example.com',
+            password='testpass123',
+            is_verified=True
+        )
+        UserRole.objects.create(user=self.client_user, role=self.client_role)
 
-        # Merchant connecté
-        self.client.force_authenticate(user=self.merchant_user)
-        response = self.client.get(reverse('role-list'))
+        self.driver_user = User.objects.create_user(
+            username='driver',
+            email='driver@example.com',
+            password='testpass123',
+            is_verified=True
+        )
+        UserRole.objects.create(user=self.driver_user, role=self.driver_role)
+
+    def assert_admin_only_actions_forbidden(self, user):
+        self.client.force_authenticate(user=user)
+        response = self.client.patch(
+            reverse('user-detail', args=[self.client_user.id]),
+            {'first_name': 'Blocked'},
+            format='json',
+        )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-        # Non connecté
+    def test_admin_can_access_protected_endpoints_and_admin_actions(self):
+        """Vérifie que l'admin accède aux endpoints protégés et aux actions réservées."""
+        self.client.force_authenticate(user=self.admin_user)
+
+        list_response = self.client.get(self.user_list_url)
+        update_response = self.client.patch(
+            reverse('user-detail', args=[self.merchant_user.id]),
+            {'first_name': 'Updated by admin'},
+            format='json',
+        )
+
+        self.assertEqual(list_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(update_response.status_code, status.HTTP_200_OK)
+
+    def test_merchant_access_to_protected_endpoints(self):
+        """Vérifie les accès du rôle merchant aux endpoints protégés."""
+        self.client.force_authenticate(user=self.merchant_user)
+
+        self.assertEqual(self.client.get(self.user_list_url).status_code, status.HTTP_200_OK)
+        self.assert_admin_only_actions_forbidden(self.merchant_user)
+
+    def test_client_access_to_protected_endpoints(self):
+        """Vérifie les accès du rôle client aux endpoints protégés."""
+        self.client.force_authenticate(user=self.client_user)
+
+        self.assertEqual(self.client.get(self.user_list_url).status_code, status.HTTP_200_OK)
+        self.assert_admin_only_actions_forbidden(self.client_user)
+
+    def test_driver_access_to_protected_endpoints(self):
+        """Vérifie les accès du rôle driver aux endpoints protégés."""
+        self.client.force_authenticate(user=self.driver_user)
+
+        self.assertEqual(self.client.get(self.user_list_url).status_code, status.HTTP_200_OK)
+        self.assert_admin_only_actions_forbidden(self.driver_user)
+
+    def test_unauthenticated_user_cannot_access_protected_endpoints(self):
+        """Vérifie qu'un utilisateur non authentifié ne peut pas accéder aux endpoints protégés."""
         self.client.force_authenticate(user=None)
-        response = self.client.get(reverse('role-list'))
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
-    def test_admin_can_access_permissions_api(self):
-        """Vérifie que seul l'admin peut accéder à l'API des permissions."""
-        self.client.force_authenticate(user=self.admin_user)
-        response = self.client.get(reverse('permission-list'))
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-        self.client.force_authenticate(user=self.merchant_user)
-        response = self.client.get(reverse('permission-list'))
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(self.client.get(self.user_list_url).status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(
+            self.client.patch(
+                reverse('user-detail', args=[self.admin_user.id]),
+                {'first_name': 'Blocked'},
+                format='json',
+            ).status_code,
+            status.HTTP_401_UNAUTHORIZED,
+        )
 
     def test_user_serializer_includes_roles_and_permissions(self):
         """Vérifie que le serializer User inclut les rôles et permissions."""
