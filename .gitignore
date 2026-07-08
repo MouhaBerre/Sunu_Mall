@@ -44,3 +44,4 @@ Thumbs.db
 infra/monitoring/grafana/data/
 docs/commandes git.md
 docs/Une PR (Pull Request) est une deman.txt
+backend/pyrefly.toml
