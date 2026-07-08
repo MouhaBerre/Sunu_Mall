@@ -7,7 +7,6 @@
 # puis "sunu up", "sunu logs backend", etc.
 # =========================================================
 
-
 services:
   # ---------- Backend Django ----------
   backend:
@@ -28,7 +27,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
-    networks: [sunu-mall]
+    networks: [ sunu-mall ]
 
   celery-worker:
     build:
@@ -44,7 +43,7 @@ services:
     depends_on:
       - backend
       - redis
-    networks: [sunu-mall]
+    networks: [ sunu-mall ]
 
   celery-beat:
     build:
@@ -60,7 +59,7 @@ services:
     depends_on:
       - backend
       - redis
-    networks: [sunu-mall]
+    networks: [ sunu-mall ]
 
   # ---------- Frontend boutique (Next.js) ----------
   frontend:
@@ -73,7 +72,7 @@ services:
       NEXT_PUBLIC_API_URL: http://localhost:8080/api
     depends_on:
       - backend
-    networks: [sunu-mall]
+    networks: [ sunu-mall ]
 
   # ---------- Dashboard vendeur ----------
   seller-dashboard:
@@ -84,7 +83,7 @@ services:
       - "3011:80"
     depends_on:
       - backend
-    networks: [sunu-mall]
+    networks: [ sunu-mall ]
 
   # ---------- Données ----------
   db:
@@ -98,17 +97,17 @@ services:
     ports:
       - "5433:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sunu_mall}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sunu_mall}" ]
       interval: 5s
       timeout: 5s
       retries: 5
-    networks: [sunu-mall]
+    networks: [ sunu-mall ]
 
   redis:
     image: redis:7-alpine
     ports:
       - "6380:6379"
-    networks: [sunu-mall]
+    networks: [ sunu-mall ]
 
   minio:
     image: minio/minio:latest
@@ -121,7 +120,7 @@ services:
     ports:
       - "9010:9000" # API S3
       - "9011:9001" # Console web MinIO
-    networks: [sunu-mall]
+    networks: [ sunu-mall ]
 
   pgadmin:
     image: dpage/pgadmin4:latest
@@ -135,7 +134,7 @@ services:
       - "5051:80"
     depends_on:
       - db
-    networks: [sunu-mall]
+    networks: [ sunu-mall ]
 
   # ---------- Monitoring ----------
   prometheus:
@@ -145,7 +144,7 @@ services:
       - prometheus_data:/prometheus
     ports:
       - "9091:9090"
-    networks: [sunu-mall]
+    networks: [ sunu-mall ]
 
   grafana:
     image: grafana/grafana:latest
@@ -158,7 +157,7 @@ services:
       - "3031:3000"
     depends_on:
       - prometheus
-    networks: [sunu-mall]
+    networks: [ sunu-mall ]
 
   # ---------- Reverse proxy ----------
   nginx:
@@ -171,7 +170,7 @@ services:
       - backend
       - frontend
       - seller-dashboard
-    networks: [sunu-mall]
+    networks: [ sunu-mall ]
 
 networks:
   sunu-mall:
