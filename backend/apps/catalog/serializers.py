@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Category, Product, ProductImage
+from .models import Category, Product, ProductImage, Store
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -13,6 +13,18 @@ class ProductImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductImage
         fields = ["id", "minio_path", "position", "created_at"]
+
+
+class StoreSerializer(serializers.ModelSerializer):
+    owner_email = serializers.EmailField(source='owner.email', read_only=True)
+
+    class Meta:
+        model = Store
+        fields = [
+            "id", "owner", "owner_email", "category", "name",
+            "status", "created_at", "updated_at"
+        ]
+        read_only_fields = ["id", "created_at", "updated_at", "owner_email"]
 
 
 class ProductSerializer(serializers.ModelSerializer):

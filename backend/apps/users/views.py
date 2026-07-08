@@ -1,10 +1,13 @@
 from rest_framework import viewsets, permissions
+from rest_framework.decorators import action
+from rest_framework.response import Response
 from .models import User, Role, Permission, UserRole, RolePermission
 from .serializers import (
     UserSerializer, RoleSerializer, PermissionSerializer,
     UserRoleSerializer, RolePermissionSerializer
 )
 from .permissions import IsAdmin
+from apps.catalog.models import Store
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -21,6 +24,32 @@ class UserViewSet(viewsets.ModelViewSet):
         else:
             permission_classes = [permissions.IsAuthenticated]
         return [permission() for permission in permission_classes]
+
+    @action(detail=False, methods=['get'], url_path='admin/dashboard/stats', permission_classes=[IsAdmin])
+    def admin_dashboard_stats(self, request):
+        """Retourne des statistiques de base pour le tableau de bord admin."""
+        users_total = User.objects.count()
+        users_active = User.objects.filter(is_active=True).count()
+        users_unverified = User.objects.filter(is_verified=False).count()
+
+        stores_total = Store.objects.count()
+        stores_active = Store.objects.filter(status=Store.Status.ACTIVE).count()
+        stores_pending_review = Store.objects.filter(status=Store.Status.INACTIVE).count()
+        stores_suspended = Store.objects.filter(status=Store.Status.SUSPENDED).count()
+
+        return Response({
+            "users": {
+                "total": users_total,
+                "active": users_active,
+                "unverified": users_unverified,
+            },
+            "stores": {
+                "total": stores_total,
+                "active": stores_active,
+                "pending_review": stores_pending_review,
+                "suspended": stores_suspended,
+            },
+        })
 
 
 class RoleViewSet(viewsets.ReadOnlyModelViewSet):
