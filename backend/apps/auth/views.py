@@ -1,6 +1,12 @@
+from django.contrib.auth import authenticate
+from django.contrib.auth.models import update_last_login
 from rest_framework import generics, permissions, status
+from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.settings import api_settings
+from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str
@@ -8,6 +14,51 @@ from django.core.exceptions import ValidationError
 from .serializers import RegisterSerializer, LoginSerializer, ResendVerificationSerializer
 from .utils import email_verification_token, send_verification_email
 from apps.users.models import User
+
+
+class VerifiedTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """
+    Empêche l'obtention de JWT via l'endpoint SimpleJWT tant que l'email
+    de l'utilisateur n'a pas été confirmé.
+    """
+
+    def validate(self, attrs):
+        authenticate_kwargs = {
+            self.username_field: attrs[self.username_field],
+            "password": attrs["password"],
+        }
+        request = self.context.get("request")
+        if request is not None:
+            authenticate_kwargs["request"] = request
+
+        self.user = authenticate(**authenticate_kwargs)
+
+        if not api_settings.USER_AUTHENTICATION_RULE(self.user):
+            raise AuthenticationFailed(
+                self.error_messages["no_active_account"],
+                code="no_active_account",
+            )
+
+        if not self.user.is_verified:
+            raise AuthenticationFailed(
+                "Veuillez vérifier votre email avant de vous connecter.",
+                code="email_not_verified",
+            )
+
+        refresh = self.get_token(self.user)
+        data = {
+            "refresh": str(refresh),
+            "access": str(refresh.access_token),
+        }
+
+        if api_settings.UPDATE_LAST_LOGIN:
+            update_last_login(None, self.user)
+
+        return data
+
+
+class VerifiedTokenObtainPairView(TokenObtainPairView):
+    serializer_class = VerifiedTokenObtainPairSerializer
 
 class RegisterView(generics.CreateAPIView):
     """
@@ -25,9 +76,7 @@ class RegisterView(generics.CreateAPIView):
         
         # Envoyer l'email de vérification
         send_verification_email(user)
-        
-        refresh = RefreshToken.for_user(user)
-        
+
         roles = [ur.role.name for ur in user.user_roles.select_related('role')]
 
         return Response({
@@ -40,8 +89,8 @@ class RegisterView(generics.CreateAPIView):
                 "roles": roles,
                 "is_verified": user.is_verified
             },
-            "access": str(refresh.access_token),
-            "refresh": str(refresh),
+            "access": None,
+            "refresh": None,
             "message": "Inscription réussie ! Vérifiez votre email pour activer votre compte."
         }, status=status.HTTP_201_CREATED)
 

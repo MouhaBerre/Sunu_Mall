@@ -1,12 +1,16 @@
 """
 Tests unitaires pour l'application auth.
 """
-from django.test import TestCase
+from unittest.mock import patch
+
+from django.conf import settings
+from django.core import mail
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
 from apps.users.models import User, Role, UserRole
-from apps.auth.utils import email_verification_token
+from apps.auth.utils import email_verification_token, send_verification_email
 from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 
@@ -21,12 +25,31 @@ class AuthTests(TestCase):
         self.login_url = reverse('auth_login')
         self.verify_email_url = reverse('auth_verify_email')
         self.resend_verification_url = reverse('auth_resend_verification')
+        self.token_url = reverse('token_obtain_pair')
+        self.token_refresh_url = reverse('token_refresh')
+        self.token_verify_url = reverse('token_verify')
+        self.token_blacklist_url = reverse('token_blacklist')
         
         # Créer les rôles par défaut
         Role.objects.get_or_create(name=Role.RoleName.CLIENT)
         Role.objects.get_or_create(name=Role.RoleName.MERCHANT)
         Role.objects.get_or_create(name=Role.RoleName.DRIVER)
         Role.objects.get_or_create(name=Role.RoleName.ADMIN)
+
+    def create_user_with_role(self, *, email='test@example.com', password='testpassword123',
+                              role_name=Role.RoleName.CLIENT, is_verified=False,
+                              is_active=True, username='testuser'):
+        user = User.objects.create_user(
+            username=username,
+            email=email,
+            password=password,
+            is_active=is_active,
+        )
+        user.is_verified = is_verified
+        user.save()
+        role = Role.objects.get(name=role_name)
+        UserRole.objects.create(user=user, role=role)
+        return user
 
     def test_register_user_success(self):
         """
@@ -40,14 +63,18 @@ class AuthTests(TestCase):
             'phone': '+221771234567',
             'role_name': 'client'
         }
-        
-        response = self.client.post(self.register_url, data, format='json')
+
+        with patch('apps.auth.views.send_verification_email') as mocked_send:
+            response = self.client.post(self.register_url, data, format='json')
         
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertIn('access', response.data)
         self.assertIn('refresh', response.data)
+        self.assertIsNone(response.data['access'])
+        self.assertIsNone(response.data['refresh'])
         self.assertEqual(response.data['user']['email'], data['email'])
         self.assertEqual(response.data['user']['roles'], ['client'])
+        mocked_send.assert_called_once()
         
         user = User.objects.get(email=data['email'])
         self.assertFalse(user.is_verified)
@@ -116,12 +143,14 @@ class AuthTests(TestCase):
         self.assertIn('refresh', response.data)
         self.assertEqual(response.data['user']['email'], data['email'])
 
-    def test_login_invalid_credentials(self):
+    def test_login_wrong_password(self):
         """
-        Teste la connexion avec des identifiants invalides.
+        Teste la connexion avec un mauvais mot de passe.
         """
+        self.create_user_with_role(is_verified=True)
+
         data = {
-            'email': 'nonexistent@example.com',
+            'email': 'test@example.com',
             'password': 'wrongpassword'
         }
         
@@ -129,6 +158,150 @@ class AuthTests(TestCase):
         
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('non_field_errors', response.data)
+
+    def test_login_nonexistent_user(self):
+        """
+        Teste la connexion avec un utilisateur inexistant.
+        """
+        data = {
+            'email': 'nonexistent@example.com',
+            'password': 'wrongpassword'
+        }
+
+        response = self.client.post(self.login_url, data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('non_field_errors', response.data)
+
+    def test_login_inactive_user(self):
+        """
+        Teste la connexion avec un utilisateur inactif.
+        """
+        self.create_user_with_role(
+            is_verified=True,
+            is_active=False,
+            email='inactive@example.com',
+            username='inactiveuser',
+        )
+
+        response = self.client.post(self.login_url, {
+            'email': 'inactive@example.com',
+            'password': 'testpassword123'
+        }, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('non_field_errors', response.data)
+
+    def test_token_obtain_pair_user_unverified(self):
+        """
+        Teste que l'endpoint SimpleJWT refuse un utilisateur non vérifié.
+        """
+        user = User.objects.create_user(
+            username='testuser',
+            email='test@example.com',
+            password='testpassword123'
+        )
+
+        response = self.client.post(self.token_url, {
+            'email': user.email,
+            'password': 'testpassword123'
+        }, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(
+            response.data['detail'],
+            "Veuillez vérifier votre email avant de vous connecter."
+        )
+
+    def test_token_obtain_pair_user_verified(self):
+        """
+        Teste que l'endpoint SimpleJWT fonctionne pour un utilisateur vérifié.
+        """
+        user = User.objects.create_user(
+            username='testuser',
+            email='test@example.com',
+            password='testpassword123'
+        )
+        user.is_verified = True
+        user.save()
+
+        response = self.client.post(self.token_url, {
+            'email': user.email,
+            'password': 'testpassword123'
+        }, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('access', response.data)
+        self.assertIn('refresh', response.data)
+
+    def test_token_refresh_success(self):
+        """
+        Teste le refresh d'un JWT valide.
+        """
+        user = self.create_user_with_role(
+            is_verified=True,
+            email='refresh@example.com',
+            username='refreshuser',
+        )
+
+        token_response = self.client.post(self.token_url, {
+            'email': user.email,
+            'password': 'testpassword123'
+        }, format='json')
+
+        response = self.client.post(self.token_refresh_url, {
+            'refresh': token_response.data['refresh']
+        }, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('access', response.data)
+
+    def test_token_verify_success(self):
+        """
+        Teste la vérification d'un access token valide.
+        """
+        user = self.create_user_with_role(
+            is_verified=True,
+            email='verifytoken@example.com',
+            username='verifytokenuser',
+        )
+
+        token_response = self.client.post(self.token_url, {
+            'email': user.email,
+            'password': 'testpassword123'
+        }, format='json')
+
+        response = self.client.post(self.token_verify_url, {
+            'token': token_response.data['access']
+        }, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_token_blacklist_revokes_refresh_token(self):
+        """
+        Teste la mise en blacklist d'un refresh token.
+        """
+        user = self.create_user_with_role(
+            is_verified=True,
+            email='blacklist@example.com',
+            username='blacklistuser',
+        )
+
+        token_response = self.client.post(self.token_url, {
+            'email': user.email,
+            'password': 'testpassword123'
+        }, format='json')
+        refresh_token = token_response.data['refresh']
+
+        blacklist_response = self.client.post(self.token_blacklist_url, {
+            'refresh': refresh_token
+        }, format='json')
+        refresh_response = self.client.post(self.token_refresh_url, {
+            'refresh': refresh_token
+        }, format='json')
+
+        self.assertEqual(blacklist_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(refresh_response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_verify_email_success(self):
         """
@@ -151,6 +324,26 @@ class AuthTests(TestCase):
         user.refresh_from_db()
         self.assertTrue(user.is_verified)
 
+    def test_verify_email_same_token_cannot_be_used_twice(self):
+        """
+        Teste qu'un token de vérification ne peut pas être réutilisé.
+        """
+        user = User.objects.create_user(
+            username='testuser',
+            email='test@example.com',
+            password='testpassword123'
+        )
+
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = email_verification_token.make_token(user)
+
+        first_response = self.client.get(self.verify_email_url, {'uid': uid, 'token': token})
+        second_response = self.client.get(self.verify_email_url, {'uid': uid, 'token': token})
+
+        self.assertEqual(first_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(second_response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('error', second_response.data)
+
     def test_verify_email_invalid_token(self):
         """
         Teste la vérification d'email avec un token invalide.
@@ -172,6 +365,33 @@ class AuthTests(TestCase):
         user.refresh_from_db()
         self.assertFalse(user.is_verified)
 
+    def test_verify_email_expired_token(self):
+        """
+        Teste la vérification d'email avec un token expiré.
+        """
+        user = User.objects.create_user(
+            username='testuser',
+            email='test@example.com',
+            password='testpassword123'
+        )
+
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = email_verification_token.make_token(user)
+        current_seconds = email_verification_token._num_seconds(email_verification_token._now())
+
+        with patch.object(
+            email_verification_token,
+            '_num_seconds',
+            return_value=current_seconds + settings.PASSWORD_RESET_TIMEOUT + 1,
+        ):
+            response = self.client.get(self.verify_email_url, {'uid': uid, 'token': token})
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('error', response.data)
+
+        user.refresh_from_db()
+        self.assertFalse(user.is_verified)
+
     def test_resend_verification_email(self):
         """
         Teste le renvoi de l'email de vérification.
@@ -183,10 +403,12 @@ class AuthTests(TestCase):
         )
         
         data = {'email': 'test@example.com'}
-        response = self.client.post(self.resend_verification_url, data, format='json')
+        with patch('apps.auth.views.send_verification_email') as mocked_send:
+            response = self.client.post(self.resend_verification_url, data, format='json')
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn('message', response.data)
+        mocked_send.assert_called_once_with(user)
 
     def test_resend_verification_email_already_verified(self):
         """
@@ -205,3 +427,20 @@ class AuthTests(TestCase):
         
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('message', response.data)
+
+    @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+    def test_send_verification_email_helper(self):
+        """
+        Teste l'envoi réel de l'email de vérification via le helper existant.
+        """
+        user = User(
+            username='testuser',
+            email='test@example.com',
+            first_name='Test'
+        )
+
+        send_verification_email(user)
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].subject, "Vérifiez votre email - SUNU MALL")
+        self.assertIn('/verify-email?uid=', mail.outbox[0].body)
