@@ -1,6 +1,6 @@
 from django.core.files.storage import default_storage
 from rest_framework import serializers
-from .models import Brand, Category, Inventory, Product, ProductImage, ProductVariant, Store
+from .models import Brand, Category, Inventory, Product, ProductImage, ProductVariant, Review, Store
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -159,3 +159,36 @@ class ProductSerializer(serializers.ModelSerializer):
         if not obj.category:
             return []
         return [category.name for category in obj.category.get_breadcrumb()]
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    user_name = serializers.CharField(source='user.get_full_name', read_only=True)
+
+    class Meta:
+        model = Review
+        fields = ["id", "user_name", "rating", "comment", "created_at"]
+        read_only_fields = fields
+
+
+class ProductDetailSerializer(ProductSerializer):
+    """Fiche produit détaillée : avis + produits similaires en plus."""
+    reviews_summary = serializers.SerializerMethodField()
+    related_products = serializers.SerializerMethodField()
+
+    class Meta(ProductSerializer.Meta):
+        fields = ProductSerializer.Meta.fields + ["reviews_summary", "related_products"]
+
+    def get_reviews_summary(self, obj):
+        return {
+            "average_rating": obj.average_rating(),
+            "count": obj.reviews.count(),
+            "recent": ReviewSerializer(obj.reviews.all()[:5], many=True).data,
+        }
+
+    def get_related_products(self, obj):
+        if not obj.category:
+            return []
+        related = Product.objects.filter(
+            category=obj.category, status=Product.Status.ACTIVE,
+        ).exclude(id=obj.id)[:4]
+        return ProductSerializer(related, many=True).data

@@ -10,7 +10,7 @@ from django.utils import timezone
 from .models import Brand, Category, Inventory, Product, ProductImage, ProductVariant, Store
 from .serializers import (
     BrandSerializer, CategorySerializer, CategoryTreeSerializer, InventorySerializer,
-    InventoryWriteSerializer, ProductImageSerializer, ProductSerializer,
+    InventoryWriteSerializer, ProductDetailSerializer, ProductImageSerializer, ProductSerializer,
     ProductVariantSerializer, ProductVariantWriteSerializer, StorePublicSerializer,
     StoreSerializer,
 )
@@ -57,6 +57,11 @@ class ProductViewSet(viewsets.ModelViewSet):
         ):
             return Product.objects.filter(Q(status=Product.Status.ACTIVE) | Q(store__owner=user))
         return Product.objects.filter(status=Product.Status.ACTIVE)
+
+    def get_serializer_class(self):
+        if self.action == "retrieve":
+            return ProductDetailSerializer
+        return ProductSerializer
 
     def get_permissions(self):
         if self.action in (

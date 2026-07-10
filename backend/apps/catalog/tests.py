@@ -503,3 +503,47 @@ class HomeAPITests(APITestCase):
 
         category_names = [c['name'] for c in data['categories']]
         self.assertIn("Maison", category_names)
+
+
+class ProductDetailTests(APITestCase):
+    """Fiche produit détaillée : avis + produits similaires."""
+
+    def setUp(self):
+        merchant = _create_user_with_role('marchand-detail@example.com', Role.RoleName.MERCHANT)
+        self.reviewer = _create_user_with_role('client-detail@example.com', Role.RoleName.CLIENT)
+        store = Store.objects.create(owner=merchant, name="Boutique détail", status=Store.Status.ACTIVE)
+        self.category = Category.objects.create(name="Chaussures")
+
+        self.product = Product.objects.create(
+            store=store, category=self.category, name="Baskets", base_price="20000.00",
+            status=Product.Status.ACTIVE,
+        )
+        self.related_product = Product.objects.create(
+            store=store, category=self.category, name="Sandales", base_price="10000.00",
+            status=Product.Status.ACTIVE,
+        )
+        self.other_category_product = Product.objects.create(
+            store=store, name="Sac à main", base_price="15000.00", status=Product.Status.ACTIVE,
+        )
+        Review.objects.create(product=self.product, user=self.reviewer, rating=4, comment="Très bien")
+
+    def test_detail_includes_reviews_summary_and_related_products(self):
+        response = self.client.get(reverse('product-detail', args=[self.product.id]))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.data
+
+        self.assertEqual(data['reviews_summary']['count'], 1)
+        self.assertEqual(data['reviews_summary']['average_rating'], 4)
+        self.assertEqual(len(data['reviews_summary']['recent']), 1)
+        self.assertEqual(data['reviews_summary']['recent'][0]['comment'], "Très bien")
+
+        related_names = [p['name'] for p in data['related_products']]
+        self.assertIn("Sandales", related_names)
+        self.assertNotIn("Sac à main", related_names)
+        self.assertNotIn("Baskets", related_names)
+
+    def test_list_view_does_not_include_detail_only_fields(self):
+        response = self.client.get(reverse('product-list'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        results = response.data.get('results', response.data)
+        self.assertNotIn('reviews_summary', results[0])
