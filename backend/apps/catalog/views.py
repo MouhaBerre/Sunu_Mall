@@ -3,8 +3,10 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from django_filters.rest_framework import DjangoFilterBackend
-from django.db.models import Q
+from django.db.models import Avg, Q
+from django.utils import timezone
 from .models import Brand, Category, Inventory, Product, ProductImage, ProductVariant, Store
 from .serializers import (
     BrandSerializer, CategorySerializer, CategoryTreeSerializer, InventorySerializer,
@@ -17,7 +19,7 @@ from .images import process_and_store_image, process_single_image
 from apps.users.models import Role
 from apps.users.permissions import IsAdmin, IsOwnerOrAdmin, IsStoreOwnerOrAdmin
 from .permissions import CanCreateProduct, CanCreateStore
-from apps.monetization.models import Notification
+from apps.monetization.models import Notification, SponsoredProduct
 from django.core.mail import send_mail
 from django.conf import settings
 
@@ -280,3 +282,38 @@ class StoreViewSet(viewsets.ModelViewSet):
         self._notify_owner(store, subject, message)
         serializer = self.get_serializer(store)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class HomeAPIView(APIView):
+    """Page d'accueil publique : blocs mis en avant, nouveautés, top notes, catégories."""
+    permission_classes = [permissions.AllowAny]
+    BLOCK_SIZE = 8
+
+    def get(self, request):
+        active_products = Product.objects.filter(status=Product.Status.ACTIVE)
+        today = timezone.now().date()
+
+        sponsored_product_ids = SponsoredProduct.objects.filter(
+            status=SponsoredProduct.Status.ACTIVE,
+            starts_at__lte=today,
+            ends_at__gte=today,
+        ).values_list("product_id", flat=True)
+        featured = active_products.filter(id__in=sponsored_product_ids)[:self.BLOCK_SIZE]
+
+        new_arrivals = active_products.order_by("-created_at")[:self.BLOCK_SIZE]
+
+        top_rated = (
+            active_products
+            .annotate(avg_rating=Avg("reviews__rating"))
+            .filter(avg_rating__isnull=False)
+            .order_by("-avg_rating")[:self.BLOCK_SIZE]
+        )
+
+        categories = Category.objects.filter(parent__isnull=True)
+
+        return Response({
+            "featured": ProductSerializer(featured, many=True).data,
+            "new_arrivals": ProductSerializer(new_arrivals, many=True).data,
+            "top_rated": ProductSerializer(top_rated, many=True).data,
+            "categories": CategoryTreeSerializer(categories, many=True).data,
+        })

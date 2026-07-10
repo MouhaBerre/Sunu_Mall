@@ -11,9 +11,11 @@ from PIL import Image
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from apps.monetization.models import Notification
+import datetime
+
+from apps.monetization.models import Notification, SponsoredProduct
 from apps.users.models import User, Role, UserRole
-from .models import Category, Inventory, Product, ProductImage, ProductVariant, Store
+from .models import Category, Inventory, Product, ProductImage, ProductVariant, Review, Store
 
 
 def _create_user_with_role(email, role_name, **extra):
@@ -440,3 +442,64 @@ class ProductSearchTests(APITestCase):
         response = self.client.get(self.list_url, {"ordering": "base_price"})
         names = self._names(response)
         self.assertEqual(names.index("Chemise") < names.index("Téléphone pas cher") < names.index("Téléphone premium"), True)
+
+
+class HomeAPITests(APITestCase):
+    """API page d'accueil : blocs mis en avant, nouveautés, top notes, catégories."""
+
+    def setUp(self):
+        merchant = _create_user_with_role('marchand-home@example.com', Role.RoleName.MERCHANT)
+        client_user = _create_user_with_role('client-home@example.com', Role.RoleName.CLIENT)
+        self.client_user = client_user
+        store = Store.objects.create(owner=merchant, name="Boutique accueil", status=Store.Status.ACTIVE)
+        root_category = Category.objects.create(name="Maison")
+
+        self.sponsored_product = Product.objects.create(
+            store=store, category=root_category, name="Produit sponsorisé",
+            base_price="3000.00", status=Product.Status.ACTIVE,
+        )
+        SponsoredProduct.objects.create(
+            product=self.sponsored_product, store=store, daily_budget="100.00",
+            starts_at=datetime.date.today() - datetime.timedelta(days=1),
+            ends_at=datetime.date.today() + datetime.timedelta(days=1),
+            status=SponsoredProduct.Status.ACTIVE,
+        )
+
+        self.expired_sponsored_product = Product.objects.create(
+            store=store, name="Sponsorisé expiré", base_price="1000.00", status=Product.Status.ACTIVE,
+        )
+        SponsoredProduct.objects.create(
+            product=self.expired_sponsored_product, store=store, daily_budget="50.00",
+            starts_at=datetime.date.today() - datetime.timedelta(days=10),
+            ends_at=datetime.date.today() - datetime.timedelta(days=5),
+            status=SponsoredProduct.Status.EXPIRED,
+        )
+
+        self.rated_product = Product.objects.create(
+            store=store, name="Produit bien noté", base_price="2000.00", status=Product.Status.ACTIVE,
+        )
+        Review.objects.create(product=self.rated_product, user=client_user, rating=5)
+
+        self.draft_product = Product.objects.create(
+            store=store, name="Brouillon invisible", base_price="1.00", status=Product.Status.DRAFT,
+        )
+
+    def test_home_blocks_are_public_and_well_formed(self):
+        response = self.client.get(reverse('home'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.data
+        for block in ("featured", "new_arrivals", "top_rated", "categories"):
+            self.assertIn(block, data)
+
+        featured_names = [p['name'] for p in data['featured']]
+        self.assertIn("Produit sponsorisé", featured_names)
+        self.assertNotIn("Sponsorisé expiré", featured_names)
+
+        top_rated_names = [p['name'] for p in data['top_rated']]
+        self.assertIn("Produit bien noté", top_rated_names)
+
+        new_arrivals_names = [p['name'] for p in data['new_arrivals']]
+        self.assertNotIn("Brouillon invisible", new_arrivals_names)
+
+        category_names = [c['name'] for c in data['categories']]
+        self.assertIn("Maison", category_names)
