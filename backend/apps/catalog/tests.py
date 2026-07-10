@@ -381,3 +381,62 @@ class CategoryTreeTests(APITestCase):
         self.assertEqual(by_name["Électronique"]['children'][0]['name'], "Téléphones")
         self.assertEqual(by_name["Électronique"]['children'][0]['children'][0]['name'], "Smartphones")
         self.assertEqual(by_name["Mode"]['children'], [])
+
+
+class ProductSearchTests(APITestCase):
+    """Recherche produit : mot-clé, catégorie, boutique, prix, tri."""
+
+    def setUp(self):
+        merchant = _create_user_with_role('marchand-search@example.com', Role.RoleName.MERCHANT)
+        self.store = Store.objects.create(owner=merchant, name="Boutique recherche", status=Store.Status.ACTIVE)
+        self.other_store = Store.objects.create(owner=merchant, name="Autre boutique", status=Store.Status.ACTIVE)
+        self.electronique = Category.objects.create(name="Électronique")
+        self.mode = Category.objects.create(name="Mode")
+
+        self.cheap_phone = Product.objects.create(
+            store=self.store, category=self.electronique, name="Téléphone pas cher",
+            description="Un bon smartphone abordable", base_price="15000.00", status=Product.Status.ACTIVE,
+        )
+        self.expensive_phone = Product.objects.create(
+            store=self.store, category=self.electronique, name="Téléphone premium",
+            description="Le meilleur smartphone", base_price="500000.00", status=Product.Status.ACTIVE,
+        )
+        self.shirt = Product.objects.create(
+            store=self.other_store, category=self.mode, name="Chemise",
+            description="Chemise en coton", base_price="8000.00", status=Product.Status.ACTIVE,
+        )
+        self.list_url = reverse('product-list')
+
+    def _names(self, response):
+        results = response.data.get('results', response.data)
+        return [item['name'] for item in results]
+
+    def test_filter_by_keyword(self):
+        response = self.client.get(self.list_url, {"search": "smartphone"})
+        names = self._names(response)
+        self.assertIn("Téléphone pas cher", names)
+        self.assertIn("Téléphone premium", names)
+        self.assertNotIn("Chemise", names)
+
+    def test_filter_by_category(self):
+        response = self.client.get(self.list_url, {"category": self.mode.id})
+        self.assertEqual(self._names(response), ["Chemise"])
+
+    def test_filter_by_store(self):
+        response = self.client.get(self.list_url, {"store": str(self.other_store.id)})
+        self.assertEqual(self._names(response), ["Chemise"])
+
+    def test_filter_by_price_range(self):
+        response = self.client.get(self.list_url, {"min_price": "10000", "max_price": "20000"})
+        self.assertEqual(self._names(response), ["Téléphone pas cher"])
+
+    def test_combined_filters(self):
+        response = self.client.get(self.list_url, {
+            "category": self.electronique.id, "max_price": "100000", "search": "smartphone",
+        })
+        self.assertEqual(self._names(response), ["Téléphone pas cher"])
+
+    def test_ordering_by_price(self):
+        response = self.client.get(self.list_url, {"ordering": "base_price"})
+        names = self._names(response)
+        self.assertEqual(names.index("Chemise") < names.index("Téléphone pas cher") < names.index("Téléphone premium"), True)

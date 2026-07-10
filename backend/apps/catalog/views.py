@@ -12,6 +12,7 @@ from .serializers import (
     ProductVariantSerializer, ProductVariantWriteSerializer, StorePublicSerializer,
     StoreSerializer,
 )
+from .filters import ProductFilter
 from .images import process_and_store_image, process_single_image
 from apps.users.models import Role
 from apps.users.permissions import IsAdmin, IsOwnerOrAdmin, IsStoreOwnerOrAdmin
@@ -42,9 +43,10 @@ class ProductViewSet(viewsets.ModelViewSet):
     """
 
     serializer_class = ProductSerializer
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
-    filterset_fields = ["store", "category", "status"]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = ProductFilter
     search_fields = ["name", "description"]
+    ordering_fields = ["base_price", "created_at"]
 
     def get_queryset(self):
         user = self.request.user
