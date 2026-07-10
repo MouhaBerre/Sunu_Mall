@@ -49,6 +49,38 @@ class StoreSerializer(serializers.ModelSerializer):
         return default_storage.url(obj.banner) if obj.banner else None
 
 
+class StorePublicSerializer(serializers.ModelSerializer):
+    """
+    Vue boutique publique : pas d'e-mail ni d'identité du propriétaire.
+    Les produits de la boutique se consultent via
+    GET /api/catalog/products/?store=<id>.
+    """
+    logo_url = serializers.SerializerMethodField()
+    banner_url = serializers.SerializerMethodField()
+    rating = serializers.SerializerMethodField()
+    product_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Store
+        fields = [
+            "id", "category", "name", "description",
+            "logo_url", "banner_url", "rating", "product_count", "created_at",
+        ]
+        read_only_fields = fields
+
+    def get_logo_url(self, obj):
+        return default_storage.url(obj.logo) if obj.logo else None
+
+    def get_banner_url(self, obj):
+        return default_storage.url(obj.banner) if obj.banner else None
+
+    def get_rating(self, obj):
+        return obj.calculate_rating()
+
+    def get_product_count(self, obj):
+        return obj.get_active_products().count()
+
+
 class BrandSerializer(serializers.ModelSerializer):
     class Meta:
         model = Brand

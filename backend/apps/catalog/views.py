@@ -9,7 +9,7 @@ from .models import Brand, Category, Inventory, Product, ProductImage, ProductVa
 from .serializers import (
     BrandSerializer, CategorySerializer, InventorySerializer, InventoryWriteSerializer,
     ProductImageSerializer, ProductSerializer, ProductVariantSerializer,
-    ProductVariantWriteSerializer, StoreSerializer,
+    ProductVariantWriteSerializer, StorePublicSerializer, StoreSerializer,
 )
 from .images import process_and_store_image, process_single_image
 from apps.users.models import Role
@@ -153,8 +153,24 @@ class StoreViewSet(viewsets.ModelViewSet):
     (créée en statut 'inactive', en attente de validation admin via
     approve/reject), modification réservée au propriétaire ou à l'admin.
     """
-    queryset = Store.objects.all()
     serializer_class = StoreSerializer
+
+    def get_queryset(self):
+        if self.action not in ("list", "retrieve"):
+            return Store.objects.all()
+        user = self.request.user
+        if user and user.is_authenticated:
+            if user.has_role(Role.RoleName.ADMIN):
+                return Store.objects.all()
+            # Lecture publique = boutiques actives, + les siennes pour qu'un
+            # commerçant puisse suivre sa boutique en attente de validation.
+            return Store.objects.filter(Q(status=Store.Status.ACTIVE) | Q(owner=user))
+        return Store.objects.filter(status=Store.Status.ACTIVE)
+
+    def get_serializer_class(self):
+        if self.action in ("list", "retrieve"):
+            return StorePublicSerializer
+        return StoreSerializer
 
     def get_permissions(self):
         if self.action in ("list", "retrieve"):

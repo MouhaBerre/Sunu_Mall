@@ -314,3 +314,49 @@ class StockAlertTests(APITestCase):
         url = reverse('store-low-stock', args=[self.store.id])
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+
+class PublicStorePageTests(APITestCase):
+    """Page boutique publique : pas de fuite d'infos sensibles, filtre statut."""
+
+    def setUp(self):
+        self.merchant = _create_user_with_role('marchand-public@example.com', Role.RoleName.MERCHANT)
+        self.other = _create_user_with_role('autre-public@example.com', Role.RoleName.MERCHANT)
+        self.active_store = Store.objects.create(
+            owner=self.merchant, name="Boutique active", description="Vente de fruits",
+            status=Store.Status.ACTIVE,
+        )
+        self.pending_store = Store.objects.create(
+            owner=self.merchant, name="Boutique en attente", status=Store.Status.INACTIVE,
+        )
+
+    def test_anonymous_sees_active_store_without_owner_email(self):
+        response = self.client.get(reverse('store-detail', args=[self.active_store.id]))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertNotIn('owner_email', response.data)
+        self.assertNotIn('owner', response.data)
+        self.assertEqual(response.data['name'], "Boutique active")
+        self.assertIn('rating', response.data)
+        self.assertIn('product_count', response.data)
+
+    def test_anonymous_cannot_see_pending_store(self):
+        response = self.client.get(reverse('store-detail', args=[self.pending_store.id]))
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_other_merchant_cannot_see_pending_store_of_someone_else(self):
+        self.client.force_authenticate(self.other)
+        response = self.client.get(reverse('store-detail', args=[self.pending_store.id]))
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_owner_can_see_own_pending_store(self):
+        self.client.force_authenticate(self.merchant)
+        response = self.client.get(reverse('store-detail', args=[self.pending_store.id]))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_anonymous_list_excludes_pending_stores(self):
+        response = self.client.get(reverse('store-list'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        results = response.data.get('results', response.data)
+        names = [item['name'] for item in results]
+        self.assertIn("Boutique active", names)
+        self.assertNotIn("Boutique en attente", names)
