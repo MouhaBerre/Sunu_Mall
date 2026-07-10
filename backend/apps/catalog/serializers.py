@@ -10,6 +10,19 @@ class CategorySerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "created_at", "updated_at"]
 
 
+class CategoryTreeSerializer(serializers.ModelSerializer):
+    """Représentation récursive parent → enfants, pour la navigation."""
+    children = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Category
+        fields = ["id", "name", "children"]
+        read_only_fields = fields
+
+    def get_children(self, obj):
+        return CategoryTreeSerializer(obj.get_children(), many=True).data
+
+
 class ProductImageSerializer(serializers.ModelSerializer):
     url = serializers.SerializerMethodField()
     thumbnail_url = serializers.SerializerMethodField()

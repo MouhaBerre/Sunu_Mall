@@ -13,7 +13,7 @@ from rest_framework.test import APITestCase
 
 from apps.monetization.models import Notification
 from apps.users.models import User, Role, UserRole
-from .models import Inventory, Product, ProductImage, ProductVariant, Store
+from .models import Category, Inventory, Product, ProductImage, ProductVariant, Store
 
 
 def _create_user_with_role(email, role_name, **extra):
@@ -360,3 +360,24 @@ class PublicStorePageTests(APITestCase):
         names = [item['name'] for item in results]
         self.assertIn("Boutique active", names)
         self.assertNotIn("Boutique en attente", names)
+
+
+class CategoryTreeTests(APITestCase):
+    """Arbre de catégories pour la navigation."""
+
+    def test_tree_nests_children_under_roots(self):
+        root = Category.objects.create(name="Électronique")
+        child = Category.objects.create(name="Téléphones", parent=root)
+        grandchild = Category.objects.create(name="Smartphones", parent=child)
+        other_root = Category.objects.create(name="Mode")
+
+        response = self.client.get(reverse('category-tree'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        by_name = {item['name']: item for item in response.data}
+        self.assertIn("Électronique", by_name)
+        self.assertIn("Mode", by_name)
+        self.assertEqual(len(by_name["Électronique"]['children']), 1)
+        self.assertEqual(by_name["Électronique"]['children'][0]['name'], "Téléphones")
+        self.assertEqual(by_name["Électronique"]['children'][0]['children'][0]['name'], "Smartphones")
+        self.assertEqual(by_name["Mode"]['children'], [])

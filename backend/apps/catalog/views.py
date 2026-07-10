@@ -7,9 +7,10 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q
 from .models import Brand, Category, Inventory, Product, ProductImage, ProductVariant, Store
 from .serializers import (
-    BrandSerializer, CategorySerializer, InventorySerializer, InventoryWriteSerializer,
-    ProductImageSerializer, ProductSerializer, ProductVariantSerializer,
-    ProductVariantWriteSerializer, StorePublicSerializer, StoreSerializer,
+    BrandSerializer, CategorySerializer, CategoryTreeSerializer, InventorySerializer,
+    InventoryWriteSerializer, ProductImageSerializer, ProductSerializer,
+    ProductVariantSerializer, ProductVariantWriteSerializer, StorePublicSerializer,
+    StoreSerializer,
 )
 from .images import process_and_store_image, process_single_image
 from apps.users.models import Role
@@ -26,6 +27,11 @@ class CategoryViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = []
+
+    @action(detail=False, methods=["get"], url_path="tree")
+    def tree(self, request):
+        roots = Category.objects.filter(parent__isnull=True)
+        return Response(CategoryTreeSerializer(roots, many=True).data)
 
 
 class ProductViewSet(viewsets.ModelViewSet):
