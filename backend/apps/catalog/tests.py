@@ -1,12 +1,18 @@
 """
 Tests pour les fonctionnalités boutique/catalogue (création, permissions).
 """
+import io
+import shutil
+import tempfile
+
+from django.test import override_settings
 from django.urls import reverse
+from PIL import Image
 from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.users.models import User, Role, UserRole
-from .models import Store
+from .models import Product, ProductImage, Store
 
 
 def _create_user_with_role(email, role_name, **extra):
@@ -90,3 +96,72 @@ class StoreCreationTests(APITestCase):
         self.client.force_authenticate(self.admin)
         response = self.client.patch(reverse('store-detail', args=[store.id]), {"description": "Corrigé par admin"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+
+def _fake_image_file(name="test.jpg"):
+    buffer = io.BytesIO()
+    Image.new("RGB", (500, 500), color="red").save(buffer, format="JPEG")
+    buffer.seek(0)
+    from django.core.files.uploadedfile import SimpleUploadedFile
+    return SimpleUploadedFile(name, buffer.read(), content_type="image/jpeg")
+
+
+_MEDIA_ROOT = tempfile.mkdtemp()
+
+
+@override_settings(
+    DEFAULT_FILE_STORAGE="django.core.files.storage.FileSystemStorage",
+    MEDIA_ROOT=_MEDIA_ROOT,
+    MEDIA_URL="/media/",
+)
+class ImageUploadTests(APITestCase):
+    """Upload et redimensionnement d'images (produits, logo/bannière boutique)."""
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        shutil.rmtree(_MEDIA_ROOT, ignore_errors=True)
+
+    def setUp(self):
+        self.merchant = _create_user_with_role('marchand-img@example.com', Role.RoleName.MERCHANT)
+        self.other_merchant = _create_user_with_role('autre-img@example.com', Role.RoleName.MERCHANT)
+        self.store = Store.objects.create(owner=self.merchant, name="Boutique images", status=Store.Status.ACTIVE)
+        self.product = Product.objects.create(
+            store=self.store, name="Produit test", base_price="1000.00",
+            status=Product.Status.DRAFT,
+        )
+
+    def test_owner_can_upload_product_image(self):
+        self.client.force_authenticate(self.merchant)
+        url = reverse('product-upload-image', args=[self.product.id])
+        response = self.client.post(url, {"file": _fake_image_file(), "is_primary": "true"}, format='multipart')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        self.assertTrue(response.data['is_primary'])
+        self.assertIsNotNone(response.data['url'])
+        self.assertIsNotNone(response.data['thumbnail_url'])
+        self.assertEqual(ProductImage.objects.filter(product=self.product).count(), 1)
+
+    def test_other_merchant_cannot_upload_product_image(self):
+        # Le produit est en brouillon : un autre commerçant ne doit même pas
+        # pouvoir détecter son existence (404, pas 403).
+        self.client.force_authenticate(self.other_merchant)
+        url = reverse('product-upload-image', args=[self.product.id])
+        response = self.client.post(url, {"file": _fake_image_file()}, format='multipart')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_owner_can_delete_product_image(self):
+        image = ProductImage.objects.create(product=self.product, minio_path="products/x.jpg")
+        self.client.force_authenticate(self.merchant)
+        url = reverse('product-delete-image', args=[self.product.id, image.id])
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(ProductImage.objects.filter(id=image.id).exists())
+
+    def test_owner_can_upload_store_logo(self):
+        self.client.force_authenticate(self.merchant)
+        url = reverse('store-upload-logo', args=[self.store.id])
+        response = self.client.post(url, {"file": _fake_image_file()}, format='multipart')
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.store.refresh_from_db()
+        self.assertTrue(self.store.logo)
+        self.assertIsNotNone(response.data['logo_url'])

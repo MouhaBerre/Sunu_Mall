@@ -2,6 +2,7 @@
 Catalogue : magasins, catégories, marques, produits, variants, inventaire et avis.
 """
 import uuid
+from django.core.files.storage import default_storage
 from django.db import models
 from django.utils import timezone
 from apps.users.models import User
@@ -153,6 +154,8 @@ class ProductImage(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
     minio_path = models.CharField(max_length=255)
+    thumbnail_path = models.CharField(max_length=255, blank=True)
+    is_primary = models.BooleanField(default=False)
     position = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -160,8 +163,14 @@ class ProductImage(models.Model):
         ordering = ['position']
 
     def get_signed_url(self):
-        # Implement signed URL generation here
-        return self.minio_path
+        if not self.minio_path:
+            return None
+        return default_storage.url(self.minio_path)
+
+    def get_thumbnail_url(self):
+        if not self.thumbnail_path:
+            return self.get_signed_url()
+        return default_storage.url(self.thumbnail_path)
 
     def __str__(self):
         return f"Image for {self.product.name}"

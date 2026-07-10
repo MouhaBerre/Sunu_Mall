@@ -1,10 +1,14 @@
 from rest_framework import viewsets, permissions, filters, status
 from rest_framework.decorators import action
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
-from .models import Category, Product, Store
-from .serializers import CategorySerializer, ProductSerializer, StoreSerializer
-from apps.users.permissions import IsAdmin, IsOwnerOrAdmin
+from django.db.models import Q
+from .models import Category, Product, ProductImage, Store
+from .serializers import CategorySerializer, ProductImageSerializer, ProductSerializer, StoreSerializer
+from .images import process_and_store_image, process_single_image
+from apps.users.models import Role
+from apps.users.permissions import IsAdmin, IsOwnerOrAdmin, IsStoreOwnerOrAdmin
 from .permissions import CanCreateStore
 from apps.monetization.models import Notification
 from django.core.mail import send_mail
@@ -21,17 +25,63 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
 class ProductViewSet(viewsets.ModelViewSet):
     """
-    Lecture publique (un acheteur doit pouvoir parcourir le catalogue
-    sans être connecté), écriture réservée aux utilisateurs authentifiés
-    (à affiner : un vendeur ne devrait modifier que ses propres produits).
+    Lecture publique limitée aux produits actifs ; un commerçant authentifié
+    voit en plus ses propres produits quel que soit leur statut (brouillon
+    compris). Écriture réservée aux commerçants sur leurs propres boutiques.
     """
 
-    queryset = Product.objects.filter(status=Product.Status.ACTIVE)
     serializer_class = ProductSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_fields = ["store", "category", "status"]
     search_fields = ["name", "description"]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user and user.is_authenticated and (
+            user.has_role(Role.RoleName.MERCHANT) or user.has_role(Role.RoleName.ADMIN)
+        ):
+            return Product.objects.filter(Q(status=Product.Status.ACTIVE) | Q(store__owner=user))
+        return Product.objects.filter(status=Product.Status.ACTIVE)
+
+    def get_permissions(self):
+        if self.action in ("upload_image", "delete_image"):
+            permission_classes = [permissions.IsAuthenticated, IsStoreOwnerOrAdmin]
+        else:
+            permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+        return [permission() for permission in permission_classes]
+
+    @action(
+        detail=True, methods=["post"], url_path="images",
+        parser_classes=[MultiPartParser, FormParser],
+    )
+    def upload_image(self, request, pk=None):
+        product = self.get_object()
+        file = request.FILES.get("file")
+        if not file:
+            return Response({"detail": "Fichier 'file' requis."}, status=status.HTTP_400_BAD_REQUEST)
+
+        original_path, thumbnail_path = process_and_store_image(file, f"products/{product.id}")
+        is_primary = str(request.data.get("is_primary", "false")).lower() == "true"
+        if is_primary:
+            product.images.update(is_primary=False)
+
+        image = ProductImage.objects.create(
+            product=product,
+            minio_path=original_path,
+            thumbnail_path=thumbnail_path,
+            is_primary=is_primary,
+            position=product.images.count(),
+        )
+        return Response(ProductImageSerializer(image).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["delete"], url_path=r"images/(?P<image_id>[^/.]+)")
+    def delete_image(self, request, pk=None, image_id=None):
+        product = self.get_object()
+        image = product.images.filter(id=image_id).first()
+        if not image:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        image.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 class StoreViewSet(viewsets.ModelViewSet):
     """
@@ -47,7 +97,7 @@ class StoreViewSet(viewsets.ModelViewSet):
             permission_classes = [permissions.AllowAny]
         elif self.action == "create":
             permission_classes = [permissions.IsAuthenticated, CanCreateStore]
-        elif self.action in ("update", "partial_update", "destroy"):
+        elif self.action in ("update", "partial_update", "destroy", "upload_logo", "upload_banner"):
             permission_classes = [permissions.IsAuthenticated, IsOwnerOrAdmin]
         elif self.action in ("approve", "reject"):
             permission_classes = [permissions.IsAuthenticated, IsAdmin]
@@ -57,6 +107,32 @@ class StoreViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user, status=Store.Status.INACTIVE)
+
+    @action(
+        detail=True, methods=["post"], url_path="logo",
+        parser_classes=[MultiPartParser, FormParser],
+    )
+    def upload_logo(self, request, pk=None):
+        store = self.get_object()
+        file = request.FILES.get("file")
+        if not file:
+            return Response({"detail": "Fichier 'file' requis."}, status=status.HTTP_400_BAD_REQUEST)
+        store.logo = process_single_image(file, f"stores/{store.id}/logo")
+        store.save(update_fields=["logo"])
+        return Response(self.get_serializer(store).data)
+
+    @action(
+        detail=True, methods=["post"], url_path="banner",
+        parser_classes=[MultiPartParser, FormParser],
+    )
+    def upload_banner(self, request, pk=None):
+        store = self.get_object()
+        file = request.FILES.get("file")
+        if not file:
+            return Response({"detail": "Fichier 'file' requis."}, status=status.HTTP_400_BAD_REQUEST)
+        store.banner = process_single_image(file, f"stores/{store.id}/banner", max_size=(1600, 500))
+        store.save(update_fields=["banner"])
+        return Response(self.get_serializer(store).data)
 
     def _notify_owner(self, store, subject, message):
         Notification.objects.create(
