@@ -1,13 +1,16 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { Logo } from "@/components/brand/Logo";
 import { cn } from "@/lib/utils";
-import { Bell, Search, ChevronDown } from "lucide-react";
+import { Bell, Search } from "lucide-react";
+import { DashboardUserMenu } from "@/components/mock/DashboardUserMenu";
 
 interface NavItem {
   label: string;
   icon: ReactNode;
   active?: boolean;
   badge?: string;
+  href?: string;
 }
 
 export function DashboardShell({
@@ -33,23 +36,28 @@ export function DashboardShell({
           <Logo variant="white" size={36} />
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1">
-          {nav.map((item, i) => (
-            <div
-              key={i}
-              className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium cursor-pointer transition-colors",
-                item.active
-                  ? "bg-orange text-white shadow-orange"
-                  : "text-white/70 hover:bg-white/5 hover:text-white",
-              )}
-            >
-              <span className="shrink-0">{item.icon}</span>
-              <span className="flex-1 truncate">{item.label}</span>
-              {item.badge && (
-                <span className="rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-semibold">{item.badge}</span>
-              )}
-            </div>
-          ))}
+          {nav.map((item, i) => {
+            const className = cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium cursor-pointer transition-colors",
+              item.active
+                ? "bg-orange text-white shadow-orange"
+                : "text-white/70 hover:bg-white/5 hover:text-white",
+            );
+            const inner = (
+              <>
+                <span className="shrink-0">{item.icon}</span>
+                <span className="flex-1 truncate">{item.label}</span>
+                {item.badge && (
+                  <span className="rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-semibold">{item.badge}</span>
+                )}
+              </>
+            );
+            return item.href ? (
+              <Link key={i} href={item.href} className={className}>{inner}</Link>
+            ) : (
+              <div key={i} className={className}>{inner}</div>
+            );
+          })}
         </nav>
         <div className="border-t border-white/10 p-4 text-xs text-white/50">v1.0 • Dakar 🇸🇳</div>
       </aside>
@@ -68,16 +76,7 @@ export function DashboardShell({
             <Bell className="h-4 w-4" />
             <span className="absolute -right-1 -top-1 h-4 w-4 rounded-full bg-orange text-[10px] text-white grid place-items-center">3</span>
           </button>
-          <div className="flex items-center gap-2 rounded-lg border border-border px-2 py-1.5">
-            <div className="h-8 w-8 rounded-full bg-navy grid place-items-center text-white text-xs font-bold">
-              {user.name.charAt(0)}
-            </div>
-            <div className="text-xs">
-              <div className="font-semibold">{user.name}</div>
-              <div className="text-muted-foreground">{user.role}</div>
-            </div>
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-          </div>
+          <DashboardUserMenu fallback={user} />
         </header>
         <div className="flex-1 p-8">
           <div className="mb-6 flex items-end justify-between gap-4 flex-wrap">

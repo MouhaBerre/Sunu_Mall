@@ -1,5 +1,4 @@
-@import "tailwindcss" source(none);
-@source "../src";
+@import "tailwindcss";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
@@ -54,11 +53,11 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  --shadow-card: 0 1px 2px rgba(10, 22, 58, 0.04), 0 4px 16px rgba(10, 22, 58, 0.06);
-  --shadow-elevated: 0 4px 12px rgba(10, 22, 58, 0.06), 0 16px 40px rgba(10, 22, 58, 0.1);
-  --shadow-orange: 0 8px 24px rgba(255, 140, 0, 0.28);
-  --shadow-orange-lg: 0 16px 40px rgba(255, 140, 0, 0.4);
-  --shadow-navy-glow: 0 20px 60px -20px rgba(10, 22, 58, 0.5);
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03);
+  --shadow-elevated: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+  --shadow-orange: 0 4px 14px 0 rgba(255, 122, 0, 0.39);
+  --shadow-orange-lg: 0 6px 20px rgba(255, 122, 0, 0.23);
+  --shadow-navy-glow: 0 20px 60px -20px rgba(30, 58, 138, 0.3);
 
   --gradient-orange: linear-gradient(135deg, #FF8C00 0%, #FFA31A 100%);
   --gradient-navy: linear-gradient(160deg, #0A163A 0%, #142A5E 100%);
@@ -71,34 +70,34 @@
 
   --navy: #0A163A;
   --navy-2: #142A5E;
-  --orange: #FF8C00;
-  --orange-light: #FFA31A;
-  --orange-dark: #F26A00;
-  --ink: #111111;
+  --orange: #FF7A00;
+  --orange-light: #FF9833;
+  --orange-dark: #E66A00;
+  --ink: #111827;
 
-  --background: #F8F9FC;
-  --foreground: #111111;
+  --background: #FFFFFF;
+  --foreground: #111827;
   --card: #FFFFFF;
-  --card-foreground: #111111;
+  --card-foreground: #111827;
   --popover: #FFFFFF;
-  --popover-foreground: #111111;
-  --primary: #0A163A;
+  --popover-foreground: #111827;
+  --primary: #FF7A00;
   --primary-foreground: #FFFFFF;
-  --secondary: #EEF1F7;
-  --secondary-foreground: #0A163A;
-  --muted: #F1F3F8;
-  --muted-foreground: #64708A;
-  --accent: #FFF3E0;
-  --accent-foreground: #F26A00;
-  --destructive: #E23B3B;
+  --secondary: #F3F4F6;
+  --secondary-foreground: #111827;
+  --muted: #F9FAFB;
+  --muted-foreground: #6B7280;
+  --accent: #FFF7ED;
+  --accent-foreground: #FF7A00;
+  --destructive: #EF4444;
   --destructive-foreground: #FFFFFF;
-  --border: #E5E9F2;
-  --input: #E5E9F2;
-  --ring: #FF8C00;
+  --border: #E5E7EB;
+  --input: #E5E7EB;
+  --ring: #FF7A00;
 
-  --success: #16A34A;
+  --success: #22C55E;
   --warning: #F59E0B;
-  --danger: #E23B3B;
+  --danger: #EF4444;
 
   --sidebar: #0A163A;
   --sidebar-foreground: #E5E9F2;
