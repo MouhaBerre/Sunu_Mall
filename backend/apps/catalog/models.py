@@ -138,7 +138,7 @@ class Product(models.Model):
         ordering = ['-created_at']
 
     def get_primary_image(self):
-        return self.images.order_by('position').first()
+        return self.images.filter(is_primary=True).first() or self.images.first()
 
     def is_in_stock(self):
         return any(variant.inventory.available() > 0 for variant in self.variants.all() if hasattr(variant, 'inventory'))

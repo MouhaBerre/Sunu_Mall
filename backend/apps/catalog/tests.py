@@ -547,3 +547,32 @@ class ProductDetailTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         results = response.data.get('results', response.data)
         self.assertNotIn('reviews_summary', results[0])
+
+
+class ProductShareTests(APITestCase):
+    """Partage produit : métadonnées OG en JSON, réutilisables par le frontend."""
+
+    def setUp(self):
+        merchant = _create_user_with_role('marchand-share@example.com', Role.RoleName.MERCHANT)
+        store = Store.objects.create(owner=merchant, name="Boutique partage", status=Store.Status.ACTIVE)
+        self.product = Product.objects.create(
+            store=store, name="Produit à partager", description="Un super produit",
+            base_price="7000.00", status=Product.Status.ACTIVE,
+        )
+
+    def test_share_returns_og_metadata_without_image(self):
+        response = self.client.get(reverse('product-share', args=[self.product.id]))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.data
+        self.assertEqual(data['title'], "Produit à partager")
+        self.assertEqual(data['description'], "Un super produit")
+        self.assertIsNone(data['image_url'])
+        self.assertIn(str(self.product.id), data['canonical_url'])
+        self.assertEqual(data['og']['og:title'], "Produit à partager")
+        self.assertEqual(data['og']['og:url'], data['canonical_url'])
+
+    def test_share_uses_primary_image_when_available(self):
+        ProductImage.objects.create(product=self.product, minio_path="products/secondary.jpg", position=0, is_primary=False)
+        primary = ProductImage.objects.create(product=self.product, minio_path="products/primary.jpg", position=1, is_primary=True)
+        response = self.client.get(reverse('product-share', args=[self.product.id]))
+        self.assertEqual(response.data['image_url'], primary.get_signed_url())

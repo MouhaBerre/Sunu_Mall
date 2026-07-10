@@ -154,6 +154,25 @@ class ProductViewSet(viewsets.ModelViewSet):
         serializer.save()
         return Response(InventorySerializer(variant.inventory).data)
 
+    @action(detail=True, methods=["get"], url_path="share")
+    def share(self, request, pk=None):
+        product = self.get_object()
+        primary_image = product.get_primary_image()
+        image_url = primary_image.get_signed_url() if primary_image else None
+        canonical_url = f"{settings.FRONTEND_URL}/produits/{product.id}"
+        return Response({
+            "title": product.name,
+            "description": product.description,
+            "image_url": image_url,
+            "canonical_url": canonical_url,
+            "og": {
+                "og:title": product.name,
+                "og:description": product.description,
+                "og:image": image_url,
+                "og:url": canonical_url,
+            },
+        })
+
 
 class BrandViewSet(viewsets.ModelViewSet):
     """Marques : lecture publique, ajout/édition par un utilisateur authentifié."""
