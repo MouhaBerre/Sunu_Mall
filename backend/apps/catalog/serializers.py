@@ -1,6 +1,6 @@
 from django.core.files.storage import default_storage
 from rest_framework import serializers
-from .models import Category, Product, ProductImage, Store
+from .models import Brand, Category, Inventory, Product, ProductImage, ProductVariant, Store
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -49,14 +49,58 @@ class StoreSerializer(serializers.ModelSerializer):
         return default_storage.url(obj.banner) if obj.banner else None
 
 
+class BrandSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Brand
+        fields = ["id", "name", "logo_url", "created_at"]
+        read_only_fields = ["id", "created_at"]
+
+
+class InventorySerializer(serializers.ModelSerializer):
+    available = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Inventory
+        fields = ["id", "quantity", "reserved_quantity", "available"]
+        read_only_fields = fields
+
+    def get_available(self, obj):
+        return obj.available()
+
+
+class ProductVariantSerializer(serializers.ModelSerializer):
+    inventory = InventorySerializer(read_only=True)
+
+    class Meta:
+        model = ProductVariant
+        fields = ["id", "sku", "attributes", "price", "inventory", "created_at", "updated_at"]
+        read_only_fields = ["id", "inventory", "created_at", "updated_at"]
+
+
+class ProductVariantWriteSerializer(serializers.ModelSerializer):
+    """Écriture directe (sku/attributes/price) — le produit est fixé par la vue."""
+
+    class Meta:
+        model = ProductVariant
+        fields = ["sku", "attributes", "price"]
+
+
 class ProductSerializer(serializers.ModelSerializer):
     images = ProductImageSerializer(many=True, read_only=True)
+    variants = ProductVariantSerializer(many=True, read_only=True)
+    brand_name = serializers.CharField(source='brand.name', read_only=True, default=None)
+    category_breadcrumb = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
         fields = [
-            "id", "store", "category", "brand", "name", "description",
-            "base_price", "status", "images",
+            "id", "store", "category", "category_breadcrumb", "brand", "brand_name",
+            "name", "description", "base_price", "status", "images", "variants",
             "created_at", "updated_at",
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
+
+    def get_category_breadcrumb(self, obj):
+        if not obj.category:
+            return []
+        return [category.name for category in obj.category.get_breadcrumb()]

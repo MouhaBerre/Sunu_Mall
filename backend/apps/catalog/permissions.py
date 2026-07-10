@@ -11,6 +11,7 @@ class CanCreateStore(HasPermission):
 
 class CanCreateProduct(HasPermission):
     required_permission = 'create_product'
+    message = "Vous n'avez pas la permission de créer un produit."
 
 
 class CanManageInventory(HasPermission):

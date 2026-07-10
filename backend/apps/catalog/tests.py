@@ -165,3 +165,82 @@ class ImageUploadTests(APITestCase):
         self.store.refresh_from_db()
         self.assertTrue(self.store.logo)
         self.assertIsNotNone(response.data['logo_url'])
+
+
+class ProductCatalogTests(APITestCase):
+    """CRUD produits/variants scopé au propriétaire de la boutique."""
+
+    def setUp(self):
+        self.merchant = _create_user_with_role('marchand-cat@example.com', Role.RoleName.MERCHANT)
+        self.other_merchant = _create_user_with_role('autre-cat@example.com', Role.RoleName.MERCHANT)
+        self.client_user = _create_user_with_role('client-cat@example.com', Role.RoleName.CLIENT)
+        self.store = Store.objects.create(owner=self.merchant, name="Boutique A", status=Store.Status.ACTIVE)
+        self.other_store = Store.objects.create(owner=self.other_merchant, name="Boutique B", status=Store.Status.ACTIVE)
+        self.list_url = reverse('product-list')
+
+    def test_merchant_can_create_product_for_own_store(self):
+        self.client.force_authenticate(self.merchant)
+        response = self.client.post(self.list_url, {
+            "store": str(self.store.id), "name": "Chaise", "base_price": "5000.00",
+        })
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        self.assertEqual(Product.objects.get(id=response.data['id']).store_id, self.store.id)
+
+    def test_merchant_cannot_create_product_for_other_store(self):
+        self.client.force_authenticate(self.merchant)
+        response = self.client.post(self.list_url, {
+            "store": str(self.other_store.id), "name": "Table", "base_price": "8000.00",
+        })
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_client_cannot_create_product(self):
+        self.client.force_authenticate(self.client_user)
+        response = self.client.post(self.list_url, {
+            "store": str(self.store.id), "name": "Interdit", "base_price": "1.00",
+        })
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_owner_can_add_and_remove_variant(self):
+        product = Product.objects.create(store=self.store, name="Sac", base_price="2000.00", status=Product.Status.ACTIVE)
+        self.client.force_authenticate(self.merchant)
+
+        add_url = reverse('product-add-variant', args=[product.id])
+        response = self.client.post(add_url, {"sku": "SAC-001", "price": "2000.00", "quantity": 10})
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        self.assertEqual(response.data['inventory']['quantity'], 10)
+        self.assertEqual(response.data['inventory']['available'], 10)
+        variant_id = response.data['id']
+
+        detail_url = reverse('product-variant-detail', args=[product.id, variant_id])
+        response = self.client.delete(detail_url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+    def test_other_merchant_cannot_add_variant(self):
+        product = Product.objects.create(store=self.store, name="Sac", base_price="2000.00", status=Product.Status.ACTIVE)
+        self.client.force_authenticate(self.other_merchant)
+        add_url = reverse('product-add-variant', args=[product.id])
+        response = self.client.post(add_url, {"sku": "SAC-002", "price": "2000.00"})
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_anonymous_can_list_active_products_with_breadcrumb_and_brand(self):
+        product = Product.objects.create(store=self.store, name="Visible", base_price="1500.00", status=Product.Status.ACTIVE)
+        response = self.client.get(self.list_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        results = response.data.get('results', response.data)
+        self.assertTrue(any(item['id'] == str(product.id) for item in results))
+
+
+class BrandTests(APITestCase):
+    def setUp(self):
+        self.merchant = _create_user_with_role('marchand-brand@example.com', Role.RoleName.MERCHANT)
+
+    def test_authenticated_user_can_create_brand(self):
+        self.client.force_authenticate(self.merchant)
+        response = self.client.post(reverse('brand-list'), {"name": "Ma Marque"})
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+
+    def test_anonymous_cannot_create_brand_but_can_list(self):
+        response = self.client.post(reverse('brand-list'), {"name": "Marque interdite"})
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        response = self.client.get(reverse('brand-list'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)

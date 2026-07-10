@@ -1,15 +1,19 @@
 from rest_framework import viewsets, permissions, filters, status
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q
-from .models import Category, Product, ProductImage, Store
-from .serializers import CategorySerializer, ProductImageSerializer, ProductSerializer, StoreSerializer
+from .models import Brand, Category, Inventory, Product, ProductImage, ProductVariant, Store
+from .serializers import (
+    BrandSerializer, CategorySerializer, ProductImageSerializer, ProductSerializer,
+    ProductVariantSerializer, ProductVariantWriteSerializer, StoreSerializer,
+)
 from .images import process_and_store_image, process_single_image
 from apps.users.models import Role
 from apps.users.permissions import IsAdmin, IsOwnerOrAdmin, IsStoreOwnerOrAdmin
-from .permissions import CanCreateStore
+from .permissions import CanCreateProduct, CanCreateStore
 from apps.monetization.models import Notification
 from django.core.mail import send_mail
 from django.conf import settings
@@ -44,11 +48,24 @@ class ProductViewSet(viewsets.ModelViewSet):
         return Product.objects.filter(status=Product.Status.ACTIVE)
 
     def get_permissions(self):
-        if self.action in ("upload_image", "delete_image"):
+        if self.action in (
+            "upload_image", "delete_image", "update", "partial_update",
+            "destroy", "add_variant", "variant_detail",
+        ):
             permission_classes = [permissions.IsAuthenticated, IsStoreOwnerOrAdmin]
+        elif self.action == "create":
+            permission_classes = [permissions.IsAuthenticated, CanCreateProduct]
         else:
             permission_classes = [permissions.IsAuthenticatedOrReadOnly]
         return [permission() for permission in permission_classes]
+
+    def perform_create(self, serializer):
+        store = serializer.validated_data.get("store")
+        user = self.request.user
+        is_owner = store is not None and store.owner_id == user.id
+        if not (user.has_role(Role.RoleName.ADMIN) or is_owner):
+            raise PermissionDenied("Vous ne pouvez créer un produit que pour votre propre boutique.")
+        serializer.save()
 
     @action(
         detail=True, methods=["post"], url_path="images",
@@ -82,6 +99,41 @@ class ProductViewSet(viewsets.ModelViewSet):
             return Response(status=status.HTTP_404_NOT_FOUND)
         image.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True, methods=["post"], url_path="variants")
+    def add_variant(self, request, pk=None):
+        product = self.get_object()
+        serializer = ProductVariantWriteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        variant = serializer.save(product=product)
+        try:
+            quantity = int(request.data.get("quantity", 0) or 0)
+        except (TypeError, ValueError):
+            quantity = 0
+        Inventory.objects.create(variant=variant, quantity=quantity)
+        return Response(ProductVariantSerializer(variant).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["patch", "delete"], url_path=r"variants/(?P<variant_id>[^/.]+)")
+    def variant_detail(self, request, pk=None, variant_id=None):
+        product = self.get_object()
+        variant = product.variants.filter(id=variant_id).first()
+        if not variant:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        if request.method == "DELETE":
+            variant.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        serializer = ProductVariantWriteSerializer(variant, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(ProductVariantSerializer(variant).data)
+
+
+class BrandViewSet(viewsets.ModelViewSet):
+    """Marques : lecture publique, ajout/édition par un utilisateur authentifié."""
+    queryset = Brand.objects.all()
+    serializer_class = BrandSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
 
 class StoreViewSet(viewsets.ModelViewSet):
     """
