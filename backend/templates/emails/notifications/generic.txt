@@ -1,0 +1,6 @@
+{{ subject }}
+
+{{ message }}
+
+Cordialement,
+L'équipe SUNU MALL

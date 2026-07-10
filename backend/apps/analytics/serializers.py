@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Report, TrafficStatistic, SalesStatistic
+from .models import PageView, Report, TrafficStatistic, SalesStatistic
 
 
 class ReportSerializer(serializers.ModelSerializer):
@@ -30,3 +30,11 @@ class SalesStatisticSerializer(serializers.ModelSerializer):
             "total_orders", "avg_order_value", "created_at"
         ]
         read_only_fields = ["id", "created_at"]
+
+
+class PageViewSerializer(serializers.ModelSerializer):
+    """Utilisé uniquement pour l'ingestion (POST /track/) — champs minimaux côté client."""
+
+    class Meta:
+        model = PageView
+        fields = ["store", "path", "session_key"]

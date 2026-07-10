@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import (
-    Notification, SponsoredProduct, SubscriptionPlan,
+    Notification, PushDevice, SponsoredProduct, SubscriptionPlan,
     Subscription, Invoice
 )
 
@@ -8,7 +8,14 @@ from .models import (
 class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification
-        fields = ["id", "user", "channel", "subject", "message", "status", "sent_at", "created_at"]
+        fields = ["id", "channel", "event_type", "subject", "message", "status", "sent_at", "created_at"]
+        read_only_fields = fields
+
+
+class PushDeviceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PushDevice
+        fields = ["id", "token", "platform", "created_at"]
         read_only_fields = ["id", "created_at"]
 
 

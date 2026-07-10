@@ -7,10 +7,22 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.sunumall.app"
+      "bundleIdentifier": "com.sunumall.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "SUNU MALL utilise votre position pour partager votre trajet de livraison avec le client."
+      }
     },
     "android": {
-      "package": "com.sunumall.app"
-    }
+      "package": "com.sunumall.app",
+      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "SUNU MALL utilise votre position pour partager votre trajet de livraison avec le client."
+        }
+      ]
+    ]
   }
 }

@@ -2,6 +2,7 @@
 Commandes et livraison.
 """
 import uuid
+from haversine import haversine
 from django.db import models
 from django.utils import timezone
 from apps.users.models import User
@@ -40,8 +41,15 @@ class Driver(models.Model):
         return self.availability_status == self.AvailabilityStatus.AVAILABLE
 
     def current_position(self):
-        # Should get last known position from DeliveryTracking
-        return None
+        active_delivery = (
+            self.deliveries
+            .exclude(status__in=[Delivery.Status.DELIVERED, Delivery.Status.CANCELLED])
+            .order_by('-created_at')
+            .first()
+        )
+        if not active_delivery:
+            return None
+        return active_delivery.trackings.first()
 
     def __str__(self):
         return f"Driver {self.user.get_full_name()}"
@@ -69,6 +77,14 @@ class Delivery(models.Model):
         self.status = self.Status.ASSIGNED
         self.save()
 
+    def mark_picked_up(self):
+        self.status = self.Status.PICKED_UP
+        self.picked_up_at = timezone.now()
+        self.save()
+
+        from . import services
+        services.generate_delivery_otp(self)
+
     def mark_delivered(self):
         self.status = self.Status.DELIVERED
         self.delivered_at = timezone.now()
@@ -76,6 +92,27 @@ class Delivery(models.Model):
 
     def __str__(self):
         return f"Delivery for Order {self.order.id}"
+
+
+class DeliveryConfirmation(models.Model):
+    """Code OTP à 6 chiffres remis au client, saisi par le livreur pour confirmer (PB-053)."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    delivery = models.OneToOneField(Delivery, on_delete=models.CASCADE, related_name='confirmation')
+    code = models.CharField(max_length=6)
+    expires_at = models.DateTimeField()
+    used_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def is_valid(self, code):
+        return not self.used_at and timezone.now() <= self.expires_at and self.code == code
+
+    def mark_used(self):
+        self.used_at = timezone.now()
+        self.save()
+
+    def __str__(self):
+        return f"OTP for delivery {self.delivery_id}"
 
 
 class DeliveryTracking(models.Model):
@@ -89,8 +126,24 @@ class DeliveryTracking(models.Model):
         ordering = ['-recorded_at']
 
     def broadcast(self):
-        # Implement websocket/broadcast logic here
-        pass
+        from asgiref.sync import async_to_sync
+        from channels.layers import get_channel_layer
+
+        from . import services
+
+        channel_layer = get_channel_layer()
+        if channel_layer is None:
+            return
+
+        payload = {
+            "type": "delivery.update",
+            "delivery_id": str(self.delivery_id),
+            "latitude": str(self.latitude),
+            "longitude": str(self.longitude),
+            "recorded_at": self.recorded_at.isoformat(),
+            "eta_minutes": services.estimate_eta_for_delivery(self.delivery),
+        }
+        async_to_sync(channel_layer.group_send)(f"delivery_{self.delivery_id}", payload)
 
     def __str__(self):
         return f"Tracking {self.delivery.id} at {self.recorded_at}"
@@ -108,9 +161,9 @@ class Address(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def distance_to(self, lat, lng):
-        # Simplified distance calculation
+        """Distance réelle en kilomètres (haversine), None si coordonnées manquantes."""
         if self.latitude and self.longitude and lat and lng:
-            return ((self.latitude - lat)**2 + (self.longitude - lng)**2)**0.5
+            return haversine((float(self.latitude), float(self.longitude)), (float(lat), float(lng)))
         return None
 
     def __str__(self):

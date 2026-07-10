@@ -61,6 +61,9 @@ class Payment(models.Model):
         # Create transactions
         Transaction.create_for_payment(self)
 
+        from apps.analytics.services import broadcast_sale
+        broadcast_sale(self)
+
     def mark_failed(self):
         self.status = self.Status.FAILED
         self.save()

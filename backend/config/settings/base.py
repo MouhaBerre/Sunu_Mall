@@ -10,6 +10,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 SECRET_KEY = config("DJANGO_SECRET_KEY", default="change-moi-en-production")
 
 INSTALLED_APPS = [
+    "daphne",
+    "channels",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -66,6 +68,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "config.wsgi.application"
+ASGI_APPLICATION = "config.asgi.application"
 
 # --- Base de données (Postgres, voir infra/docker-compose.yml) ---
 DATABASES = {
@@ -81,6 +84,16 @@ DATABASES = {
 
 # --- Redis (cache + broker Celery) ---
 REDIS_URL = config("REDIS_URL", default="redis://redis:6379/0")
+
+# --- Channels (WebSocket temps réel) ---
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [REDIS_URL],
+        },
+    },
+}
 
 # --- Celery ---
 CELERY_BROKER_URL = REDIS_URL
@@ -152,6 +165,10 @@ CORS_ALLOWED_ORIGINS = config(
     default="http://localhost:3002,http://localhost:3003",
     cast=Csv(),
 )
+# Nécessaire pour les requêtes credentialed cross-origin (ex: navigator.sendBeacon
+# du tracking de pages, cookies de session) — sans ça le navigateur bloque le
+# preflight même si l'origine est autorisée.
+CORS_ALLOW_CREDENTIALS = True
 
 AUTH_USER_MODEL = "users.User"
 
@@ -179,3 +196,18 @@ EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
 EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="noreply@sunumall.com")
 FRONTEND_URL = config("FRONTEND_URL", default="http://localhost:3000")
+
+# --- Notifications SMS/Push (voir apps/monetization/channels.py) ---
+# Aucun fournisseur n'est configuré par défaut : le backend "console" logge
+# au lieu d'envoyer réellement. Pour brancher un vrai fournisseur (Twilio,
+# Africa's Talking, Firebase Cloud Messaging...), pointer ces settings vers
+# une classe implémentant la même interface `send(notification)`.
+NOTIFICATION_SMS_BACKEND = config(
+    "NOTIFICATION_SMS_BACKEND", default="apps.monetization.channels.ConsoleSmsBackend"
+)
+NOTIFICATION_PUSH_BACKEND = config(
+    "NOTIFICATION_PUSH_BACKEND", default="apps.monetization.channels.ConsolePushBackend"
+)
+
+# --- Suivi de livraison (ETA, voir apps/orders/services.py) ---
+DELIVERY_AVERAGE_SPEED_KMH = config("DELIVERY_AVERAGE_SPEED_KMH", default=25, cast=int)

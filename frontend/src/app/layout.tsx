@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { PageViewTracker } from "../components/PageViewTracker";
+import { Providers } from "../components/Providers";
 import "../styles/globals.css";
 
 export const metadata: Metadata = {
@@ -13,7 +15,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="fr">
-      <body>{children}</body>
+      <body>
+        <Providers>
+          <PageViewTracker />
+          {children}
+        </Providers>
+      </body>
     </html>
   );
 }

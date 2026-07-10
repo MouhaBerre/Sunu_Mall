@@ -1,6 +1,6 @@
 # SUNU MALL — Mobile (React Native / Expo)
 
-App acheteur, miroir mobile de la boutique web (`frontend/`).
+App acheteur (miroir mobile de la boutique web `frontend/`) **et** app livreur — la navigation bascule selon le rôle du compte connecté (`client` ou `driver`).
 
 ## Démarrer en local
 
@@ -19,7 +19,7 @@ npm run ios       # simulateur iOS (Mac uniquement)
 
 ## Configuration de l'API
 
-Le mobile appelle le backend via `src/services/api.ts`. En local, ça pointe par défaut vers `http://localhost:8000/api` — si tu testes sur un vrai téléphone (pas un émulateur), remplace `localhost` par l'IP de ta machine sur le réseau local.
+Le mobile appelle le backend via `src/lib/api.ts` (JWT stocké dans `expo-secure-store`, refresh automatique). En local, ça pointe par défaut vers `http://localhost:8000/api` — si tu testes sur un vrai téléphone (pas un émulateur), remplace `localhost` par l'IP de ta machine sur le réseau local.
 
 ## Build pour les stores
 
