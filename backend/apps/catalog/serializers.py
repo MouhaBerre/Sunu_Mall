@@ -58,14 +58,24 @@ class BrandSerializer(serializers.ModelSerializer):
 
 class InventorySerializer(serializers.ModelSerializer):
     available = serializers.SerializerMethodField()
+    is_low_stock = serializers.SerializerMethodField()
 
     class Meta:
         model = Inventory
-        fields = ["id", "quantity", "reserved_quantity", "available"]
+        fields = ["id", "quantity", "reserved_quantity", "low_stock_threshold", "available", "is_low_stock"]
         read_only_fields = fields
 
     def get_available(self, obj):
         return obj.available()
+
+    def get_is_low_stock(self, obj):
+        return obj.is_low_stock()
+
+
+class InventoryWriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Inventory
+        fields = ["quantity", "low_stock_threshold"]
 
 
 class ProductVariantSerializer(serializers.ModelSerializer):

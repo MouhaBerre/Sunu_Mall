@@ -11,8 +11,9 @@ from PIL import Image
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from apps.monetization.models import Notification
 from apps.users.models import User, Role, UserRole
-from .models import Product, ProductImage, Store
+from .models import Inventory, Product, ProductImage, ProductVariant, Store
 
 
 def _create_user_with_role(email, role_name, **extra):
@@ -244,3 +245,72 @@ class BrandTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
         response = self.client.get(reverse('brand-list'))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+
+class StockAlertTests(APITestCase):
+    """Seuil de stock bas et notification de réapprovisionnement."""
+
+    def setUp(self):
+        self.merchant = _create_user_with_role('marchand-stock@example.com', Role.RoleName.MERCHANT)
+        self.other_merchant = _create_user_with_role('autre-stock@example.com', Role.RoleName.MERCHANT)
+        self.store = Store.objects.create(owner=self.merchant, name="Boutique stock", status=Store.Status.ACTIVE)
+        self.product = Product.objects.create(store=self.store, name="Sac", base_price="2000.00", status=Product.Status.ACTIVE)
+        self.variant = ProductVariant.objects.create(product=self.product, sku="SAC-STOCK", price="2000.00")
+
+    def test_is_low_stock_reflects_threshold(self):
+        inventory = Inventory.objects.create(variant=self.variant, quantity=10, low_stock_threshold=5)
+        self.assertFalse(inventory.is_low_stock())
+        inventory.quantity = 5
+        inventory.save()
+        self.assertTrue(inventory.is_low_stock())
+
+    def test_notification_sent_once_on_transition_below_threshold(self):
+        inventory = Inventory.objects.create(variant=self.variant, quantity=10, low_stock_threshold=5)
+        self.assertEqual(Notification.objects.filter(user=self.merchant).count(), 0)
+
+        inventory.quantity = 4
+        inventory.save()
+        self.assertEqual(Notification.objects.filter(user=self.merchant).count(), 1)
+
+        # Reste sous le seuil : pas de nouvelle notification.
+        inventory.quantity = 3
+        inventory.save()
+        self.assertEqual(Notification.objects.filter(user=self.merchant).count(), 1)
+
+        # Remonte au-dessus puis repasse en dessous : nouvelle alerte.
+        inventory.quantity = 20
+        inventory.save()
+        inventory.quantity = 2
+        inventory.save()
+        self.assertEqual(Notification.objects.filter(user=self.merchant).count(), 2)
+
+    def test_owner_can_update_inventory_via_api(self):
+        inventory = Inventory.objects.create(variant=self.variant, quantity=10)
+        self.client.force_authenticate(self.merchant)
+        url = reverse('product-variant-inventory', args=[self.product.id, self.variant.id])
+        response = self.client.patch(url, {"quantity": 2, "low_stock_threshold": 3})
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertTrue(response.data['is_low_stock'])
+        inventory.refresh_from_db()
+        self.assertEqual(inventory.quantity, 2)
+
+    def test_low_stock_dashboard_lists_only_own_store_low_variants(self):
+        Inventory.objects.create(variant=self.variant, quantity=1, low_stock_threshold=5)
+        other_store = Store.objects.create(owner=self.other_merchant, name="Autre boutique", status=Store.Status.ACTIVE)
+        other_product = Product.objects.create(store=other_store, name="Autre produit", base_price="500.00", status=Product.Status.ACTIVE)
+        other_variant = ProductVariant.objects.create(product=other_product, sku="AUTRE-001", price="500.00")
+        Inventory.objects.create(variant=other_variant, quantity=1, low_stock_threshold=5)
+
+        self.client.force_authenticate(self.merchant)
+        url = reverse('store-low-stock', args=[self.store.id])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        skus = [item['sku'] for item in response.data]
+        self.assertEqual(skus, ["SAC-STOCK"])
+
+    def test_other_merchant_cannot_see_low_stock_dashboard(self):
+        Inventory.objects.create(variant=self.variant, quantity=1, low_stock_threshold=5)
+        self.client.force_authenticate(self.other_merchant)
+        url = reverse('store-low-stock', args=[self.store.id])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)

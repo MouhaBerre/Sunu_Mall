@@ -203,6 +203,7 @@ class Inventory(models.Model):
     variant = models.OneToOneField(ProductVariant, on_delete=models.CASCADE, related_name='inventory')
     quantity = models.IntegerField(default=0)
     reserved_quantity = models.IntegerField(default=0)
+    low_stock_threshold = models.IntegerField(default=5)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -219,6 +220,9 @@ class Inventory(models.Model):
 
     def available(self):
         return self.quantity - self.reserved_quantity
+
+    def is_low_stock(self):
+        return self.available() <= self.low_stock_threshold
 
     def __str__(self):
         return f"Inventory for {self.variant.sku}"

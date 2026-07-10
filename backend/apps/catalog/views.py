@@ -7,8 +7,9 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q
 from .models import Brand, Category, Inventory, Product, ProductImage, ProductVariant, Store
 from .serializers import (
-    BrandSerializer, CategorySerializer, ProductImageSerializer, ProductSerializer,
-    ProductVariantSerializer, ProductVariantWriteSerializer, StoreSerializer,
+    BrandSerializer, CategorySerializer, InventorySerializer, InventoryWriteSerializer,
+    ProductImageSerializer, ProductSerializer, ProductVariantSerializer,
+    ProductVariantWriteSerializer, StoreSerializer,
 )
 from .images import process_and_store_image, process_single_image
 from apps.users.models import Role
@@ -50,7 +51,7 @@ class ProductViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action in (
             "upload_image", "delete_image", "update", "partial_update",
-            "destroy", "add_variant", "variant_detail",
+            "destroy", "add_variant", "variant_detail", "variant_inventory",
         ):
             permission_classes = [permissions.IsAuthenticated, IsStoreOwnerOrAdmin]
         elif self.action == "create":
@@ -127,6 +128,17 @@ class ProductViewSet(viewsets.ModelViewSet):
         serializer.save()
         return Response(ProductVariantSerializer(variant).data)
 
+    @action(detail=True, methods=["patch"], url_path=r"variants/(?P<variant_id>[^/.]+)/inventory")
+    def variant_inventory(self, request, pk=None, variant_id=None):
+        product = self.get_object()
+        variant = product.variants.filter(id=variant_id).first()
+        if not variant or not hasattr(variant, "inventory"):
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        serializer = InventoryWriteSerializer(variant.inventory, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(InventorySerializer(variant.inventory).data)
+
 
 class BrandViewSet(viewsets.ModelViewSet):
     """Marques : lecture publique, ajout/édition par un utilisateur authentifié."""
@@ -149,7 +161,7 @@ class StoreViewSet(viewsets.ModelViewSet):
             permission_classes = [permissions.AllowAny]
         elif self.action == "create":
             permission_classes = [permissions.IsAuthenticated, CanCreateStore]
-        elif self.action in ("update", "partial_update", "destroy", "upload_logo", "upload_banner"):
+        elif self.action in ("update", "partial_update", "destroy", "upload_logo", "upload_banner", "low_stock"):
             permission_classes = [permissions.IsAuthenticated, IsOwnerOrAdmin]
         elif self.action in ("approve", "reject"):
             permission_classes = [permissions.IsAuthenticated, IsAdmin]
@@ -185,6 +197,13 @@ class StoreViewSet(viewsets.ModelViewSet):
         store.banner = process_single_image(file, f"stores/{store.id}/banner", max_size=(1600, 500))
         store.save(update_fields=["banner"])
         return Response(self.get_serializer(store).data)
+
+    @action(detail=True, methods=["get"], url_path="low-stock")
+    def low_stock(self, request, pk=None):
+        store = self.get_object()
+        variants = ProductVariant.objects.filter(product__store=store).select_related("inventory", "product")
+        low_variants = [v for v in variants if hasattr(v, "inventory") and v.inventory.is_low_stock()]
+        return Response(ProductVariantSerializer(low_variants, many=True).data)
 
     def _notify_owner(self, store, subject, message):
         Notification.objects.create(
