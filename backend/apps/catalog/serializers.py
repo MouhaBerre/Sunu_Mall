@@ -21,10 +21,10 @@ class StoreSerializer(serializers.ModelSerializer):
     class Meta:
         model = Store
         fields = [
-            "id", "owner", "owner_email", "category", "name",
-            "status", "created_at", "updated_at"
+            "id", "owner", "owner_email", "category", "name", "description",
+            "logo", "banner", "status", "created_at", "updated_at"
         ]
-        read_only_fields = ["id", "created_at", "updated_at", "owner_email"]
+        read_only_fields = ["id", "owner", "status", "created_at", "updated_at", "owner_email"]
 
 
 class ProductSerializer(serializers.ModelSerializer):

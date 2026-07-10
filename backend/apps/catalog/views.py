@@ -4,7 +4,8 @@ from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Category, Product, Store
 from .serializers import CategorySerializer, ProductSerializer, StoreSerializer
-from apps.users.permissions import IsAdmin
+from apps.users.permissions import IsAdmin, IsOwnerOrAdmin
+from .permissions import CanCreateStore
 from apps.monetization.models import Notification
 from django.core.mail import send_mail
 from django.conf import settings
@@ -33,13 +34,29 @@ class ProductViewSet(viewsets.ModelViewSet):
     search_fields = ["name", "description"]
 
 class StoreViewSet(viewsets.ModelViewSet):
-    """Gestion des boutiques pour l'admin, y compris validation et rejet."""
+    """
+    Boutiques : lecture publique, création self-service par un commerçant
+    (créée en statut 'inactive', en attente de validation admin via
+    approve/reject), modification réservée au propriétaire ou à l'admin.
+    """
     queryset = Store.objects.all()
     serializer_class = StoreSerializer
-    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+
+    def get_permissions(self):
+        if self.action in ("list", "retrieve"):
+            permission_classes = [permissions.AllowAny]
+        elif self.action == "create":
+            permission_classes = [permissions.IsAuthenticated, CanCreateStore]
+        elif self.action in ("update", "partial_update", "destroy"):
+            permission_classes = [permissions.IsAuthenticated, IsOwnerOrAdmin]
+        elif self.action in ("approve", "reject"):
+            permission_classes = [permissions.IsAuthenticated, IsAdmin]
+        else:
+            permission_classes = [permissions.IsAuthenticated]
+        return [permission() for permission in permission_classes]
 
     def perform_create(self, serializer):
-        serializer.save()
+        serializer.save(owner=self.request.user, status=Store.Status.INACTIVE)
 
     def _notify_owner(self, store, subject, message):
         Notification.objects.create(
