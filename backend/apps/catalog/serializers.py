@@ -1,5 +1,6 @@
+from django.core.files.storage import default_storage
 from rest_framework import serializers
-from .models import Category, Product, ProductImage, Store
+from .models import Brand, Category, Inventory, Product, ProductImage, ProductVariant, Review, Store
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -9,32 +10,185 @@ class CategorySerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "created_at", "updated_at"]
 
 
+class CategoryTreeSerializer(serializers.ModelSerializer):
+    """Représentation récursive parent → enfants, pour la navigation."""
+    children = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Category
+        fields = ["id", "name", "children"]
+        read_only_fields = fields
+
+    def get_children(self, obj):
+        return CategoryTreeSerializer(obj.get_children(), many=True).data
+
+
 class ProductImageSerializer(serializers.ModelSerializer):
+    url = serializers.SerializerMethodField()
+    thumbnail_url = serializers.SerializerMethodField()
+
     class Meta:
         model = ProductImage
-        fields = ["id", "minio_path", "position", "created_at"]
+        fields = ["id", "url", "thumbnail_url", "is_primary", "position", "created_at"]
+        read_only_fields = fields
+
+    def get_url(self, obj):
+        return obj.get_signed_url()
+
+    def get_thumbnail_url(self, obj):
+        return obj.get_thumbnail_url()
 
 
 class StoreSerializer(serializers.ModelSerializer):
     owner_email = serializers.EmailField(source='owner.email', read_only=True)
+    logo_url = serializers.SerializerMethodField()
+    banner_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Store
         fields = [
-            "id", "owner", "owner_email", "category", "name",
-            "status", "created_at", "updated_at"
+            "id", "owner", "owner_email", "category", "name", "description",
+            "logo", "logo_url", "banner", "banner_url", "status", "created_at", "updated_at"
         ]
-        read_only_fields = ["id", "created_at", "updated_at", "owner_email"]
+        read_only_fields = [
+            "id", "owner", "status", "logo", "banner",
+            "created_at", "updated_at", "owner_email",
+        ]
+
+    def get_logo_url(self, obj):
+        return default_storage.url(obj.logo) if obj.logo else None
+
+    def get_banner_url(self, obj):
+        return default_storage.url(obj.banner) if obj.banner else None
+
+
+class StorePublicSerializer(serializers.ModelSerializer):
+    """
+    Vue boutique publique : pas d'e-mail ni d'identité du propriétaire.
+    Les produits de la boutique se consultent via
+    GET /api/catalog/products/?store=<id>.
+    """
+    logo_url = serializers.SerializerMethodField()
+    banner_url = serializers.SerializerMethodField()
+    rating = serializers.SerializerMethodField()
+    product_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Store
+        fields = [
+            "id", "category", "name", "description",
+            "logo_url", "banner_url", "rating", "product_count", "created_at",
+        ]
+        read_only_fields = fields
+
+    def get_logo_url(self, obj):
+        return default_storage.url(obj.logo) if obj.logo else None
+
+    def get_banner_url(self, obj):
+        return default_storage.url(obj.banner) if obj.banner else None
+
+    def get_rating(self, obj):
+        return obj.calculate_rating()
+
+    def get_product_count(self, obj):
+        return obj.get_active_products().count()
+
+
+class BrandSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Brand
+        fields = ["id", "name", "logo_url", "created_at"]
+        read_only_fields = ["id", "created_at"]
+
+
+class InventorySerializer(serializers.ModelSerializer):
+    available = serializers.SerializerMethodField()
+    is_low_stock = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Inventory
+        fields = ["id", "quantity", "reserved_quantity", "low_stock_threshold", "available", "is_low_stock"]
+        read_only_fields = fields
+
+    def get_available(self, obj):
+        return obj.available()
+
+    def get_is_low_stock(self, obj):
+        return obj.is_low_stock()
+
+
+class InventoryWriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Inventory
+        fields = ["quantity", "low_stock_threshold"]
+
+
+class ProductVariantSerializer(serializers.ModelSerializer):
+    inventory = InventorySerializer(read_only=True)
+
+    class Meta:
+        model = ProductVariant
+        fields = ["id", "sku", "attributes", "price", "inventory", "created_at", "updated_at"]
+        read_only_fields = ["id", "inventory", "created_at", "updated_at"]
+
+
+class ProductVariantWriteSerializer(serializers.ModelSerializer):
+    """Écriture directe (sku/attributes/price) — le produit est fixé par la vue."""
+
+    class Meta:
+        model = ProductVariant
+        fields = ["sku", "attributes", "price"]
 
 
 class ProductSerializer(serializers.ModelSerializer):
     images = ProductImageSerializer(many=True, read_only=True)
+    variants = ProductVariantSerializer(many=True, read_only=True)
+    brand_name = serializers.CharField(source='brand.name', read_only=True, default=None)
+    category_breadcrumb = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
         fields = [
-            "id", "store", "category", "brand", "name", "description",
-            "base_price", "status", "images",
+            "id", "store", "category", "category_breadcrumb", "brand", "brand_name",
+            "name", "description", "base_price", "status", "images", "variants",
             "created_at", "updated_at",
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
+
+    def get_category_breadcrumb(self, obj):
+        if not obj.category:
+            return []
+        return [category.name for category in obj.category.get_breadcrumb()]
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    user_name = serializers.CharField(source='user.get_full_name', read_only=True)
+
+    class Meta:
+        model = Review
+        fields = ["id", "user_name", "rating", "comment", "created_at"]
+        read_only_fields = fields
+
+
+class ProductDetailSerializer(ProductSerializer):
+    """Fiche produit détaillée : avis + produits similaires en plus."""
+    reviews_summary = serializers.SerializerMethodField()
+    related_products = serializers.SerializerMethodField()
+
+    class Meta(ProductSerializer.Meta):
+        fields = ProductSerializer.Meta.fields + ["reviews_summary", "related_products"]
+
+    def get_reviews_summary(self, obj):
+        return {
+            "average_rating": obj.average_rating(),
+            "count": obj.reviews.count(),
+            "recent": ReviewSerializer(obj.reviews.all()[:5], many=True).data,
+        }
+
+    def get_related_products(self, obj):
+        if not obj.category:
+            return []
+        related = Product.objects.filter(
+            category=obj.category, status=Product.Status.ACTIVE,
+        ).exclude(id=obj.id)[:4]
+        return ProductSerializer(related, many=True).data

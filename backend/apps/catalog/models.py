@@ -2,6 +2,7 @@
 Catalogue : magasins, catégories, marques, produits, variants, inventaire et avis.
 """
 import uuid
+from django.core.files.storage import default_storage
 from django.db import models
 from django.utils import timezone
 from apps.users.models import User
@@ -26,6 +27,9 @@ class Store(models.Model):
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='stores')
     category = models.ForeignKey(StoreCategory, on_delete=models.SET_NULL, null=True, blank=True, related_name='stores')
     name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    logo = models.CharField(max_length=255, blank=True)
+    banner = models.CharField(max_length=255, blank=True)
     status = models.CharField(max_length=50, choices=Status.choices, default=Status.INACTIVE)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -106,6 +110,9 @@ class Brand(models.Model):
     logo_url = models.URLField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        ordering = ['name']
+
     def __str__(self):
         return self.name
 
@@ -131,7 +138,7 @@ class Product(models.Model):
         ordering = ['-created_at']
 
     def get_primary_image(self):
-        return self.images.order_by('position').first()
+        return self.images.filter(is_primary=True).first() or self.images.first()
 
     def is_in_stock(self):
         return any(variant.inventory.available() > 0 for variant in self.variants.all() if hasattr(variant, 'inventory'))
@@ -150,6 +157,8 @@ class ProductImage(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
     minio_path = models.CharField(max_length=255)
+    thumbnail_path = models.CharField(max_length=255, blank=True)
+    is_primary = models.BooleanField(default=False)
     position = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -157,8 +166,14 @@ class ProductImage(models.Model):
         ordering = ['position']
 
     def get_signed_url(self):
-        # Implement signed URL generation here
-        return self.minio_path
+        if not self.minio_path:
+            return None
+        return default_storage.url(self.minio_path)
+
+    def get_thumbnail_url(self):
+        if not self.thumbnail_path:
+            return self.get_signed_url()
+        return default_storage.url(self.thumbnail_path)
 
     def __str__(self):
         return f"Image for {self.product.name}"
@@ -188,6 +203,7 @@ class Inventory(models.Model):
     variant = models.OneToOneField(ProductVariant, on_delete=models.CASCADE, related_name='inventory')
     quantity = models.IntegerField(default=0)
     reserved_quantity = models.IntegerField(default=0)
+    low_stock_threshold = models.IntegerField(default=5)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -204,6 +220,9 @@ class Inventory(models.Model):
 
     def available(self):
         return self.quantity - self.reserved_quantity
+
+    def is_low_stock(self):
+        return self.available() <= self.low_stock_threshold
 
     def __str__(self):
         return f"Inventory for {self.variant.sku}"
